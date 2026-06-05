@@ -42,6 +42,7 @@ export function useGeoViewModel() {
     geoWeather: query.data,
     isLoading: query.isLoading,
     isError: query.isError,
+    error: query.error,
     city,
     region,
     refetch: query.refetch,

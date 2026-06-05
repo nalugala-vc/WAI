@@ -14,3 +14,21 @@ apiClient.interceptors.request.use((config) => {
   }
   return config
 })
+
+apiClient.interceptors.response.use((response) => {
+  const contentType = String(response.headers['content-type'] ?? '')
+  const data = response.data
+
+  if (
+    typeof data === 'string' &&
+    (contentType.includes('text/html') || data.trimStart().startsWith('<!'))
+  ) {
+    return Promise.reject(
+      new Error(
+        'The API proxy is not running — the server returned the app page instead of weather data. Redeploy with the latest code and set WAI_API_KEY on Vercel.',
+      ),
+    )
+  }
+
+  return response
+})

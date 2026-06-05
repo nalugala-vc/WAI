@@ -75,6 +75,8 @@ export function useWeatherViewModel(
     weatherQuery.isLoading || hourlyQuery.isLoading || dailyQuery.isLoading
   const isError =
     weatherQuery.isError || hourlyQuery.isError || dailyQuery.isError
+  const error =
+    weatherQuery.error ?? hourlyQuery.error ?? dailyQuery.error ?? null
 
   const refetch = () => {
     void Promise.all([
@@ -116,6 +118,7 @@ export function useWeatherViewModel(
     location,
     isLoading,
     isError,
+    error,
     refetch,
   }
 }

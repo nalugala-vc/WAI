@@ -53,6 +53,12 @@ export default function DashboardPage({
     }
   }
 
+  const loadError = geo.error ?? weather.error
+  const loadErrorMessage =
+    loadError instanceof Error
+      ? loadError.message
+      : 'Check your connection and API key, then try again.'
+
   const todayDaily = weather.daily.find((day) => isToday(day.date))
 
   const preferStore = locationSource === 'manual'
@@ -173,7 +179,7 @@ export default function DashboardPage({
           {showError && !showSkeleton ? (
             <ErrorState
               title="Couldn't load weather"
-              message="Check your connection and API key, then try again. If you just deployed, confirm WAI_API_KEY is set on the server."
+              message={loadErrorMessage}
               onRetry={handleRetry}
             />
           ) : null}

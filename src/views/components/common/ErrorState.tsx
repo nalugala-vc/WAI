@@ -51,7 +51,7 @@ export function ErrorState({
           {message}
         </p>
 
-        {import.meta.env.DEV && devDetail ? (
+        {devDetail ? (
           <p className="mt-3 rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-left text-xs text-white/50">
             {devDetail}
           </p>

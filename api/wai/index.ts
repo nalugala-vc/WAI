@@ -24,6 +24,23 @@ function readRawBody(req: VercelRequest): Promise<Buffer> {
   })
 }
 
+function resolveUpstreamPath(req: VercelRequest): string {
+  const fromQuery = req.query.path
+  if (fromQuery) {
+    const parts = Array.isArray(fromQuery) ? fromQuery : [String(fromQuery)]
+    return parts.join('/')
+  }
+
+  const rawUrl = req.url ?? ''
+  const pathname = rawUrl.split('?')[0] ?? ''
+  const prefix = '/api/wai/'
+  if (pathname.startsWith(prefix)) {
+    return pathname.slice(prefix.length)
+  }
+
+  return ''
+}
+
 export default async function handler(
   req: VercelRequest,
   res: VercelResponse,
@@ -41,13 +58,12 @@ export default async function handler(
     return
   }
 
-  const segments = req.query.path
-  const pathParts = Array.isArray(segments)
-    ? segments
-    : segments
-      ? [segments]
-      : []
-  const upstreamPath = pathParts.join('/')
+  const upstreamPath = resolveUpstreamPath(req)
+  if (!upstreamPath) {
+    res.status(400).json({ error: 'Missing Weather-AI API path.' })
+    return
+  }
+
   const url = new URL(`${UPSTREAM}/${upstreamPath}`)
 
   for (const [key, value] of Object.entries(req.query)) {
