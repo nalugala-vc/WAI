@@ -1,9 +1,10 @@
 import type { TreeAnalysisResult } from '../../../models/trees.model'
-import { TablerIcon } from '../common/TablerIcon'
+import { farmHeading, farmPanel, farmSubtext } from './farmUi'
 
 export interface HistoryCardProps {
   analyses: TreeAnalysisResult[]
   isLoading: boolean
+  isError?: boolean
   onSelect: (result: TreeAnalysisResult) => void
 }
 
@@ -13,19 +14,17 @@ function formatHistoryDate(timestamp: string): string {
   return date.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
-    year: 'numeric',
   })
 }
 
 function HistoryRowSkeleton() {
   return (
-    <div className="flex animate-pulse items-center gap-3 rounded-lg border border-gray-100 p-3">
-      <div className="h-10 w-10 rounded-lg bg-gray-200" />
+    <div className="flex animate-pulse items-center gap-3 rounded-2xl border border-white/15 bg-white/5 p-3">
+      <div className="h-12 w-12 rounded-lg bg-white/10" />
       <div className="flex-1 space-y-2">
-        <div className="h-3 w-32 rounded bg-gray-200" />
-        <div className="h-2 w-24 rounded bg-gray-200" />
+        <div className="h-3 w-24 rounded bg-white/10" />
+        <div className="h-2 w-16 rounded bg-white/10" />
       </div>
-      <div className="h-5 w-12 rounded-full bg-gray-200" />
     </div>
   )
 }
@@ -33,65 +32,70 @@ function HistoryRowSkeleton() {
 export function HistoryCard({
   analyses,
   isLoading,
+  isError,
   onSelect,
 }: HistoryCardProps) {
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-      <h2 className="mb-4 text-sm font-semibold text-gray-900">Past analyses</h2>
+    <section className={`${farmPanel} overflow-hidden`}>
+      <div className="border-b border-white/20 px-4 py-4">
+        <p className={farmHeading}>Past runs</p>
+        <p className={farmSubtext}>Open a previous result</p>
+      </div>
 
-      {isLoading ? (
-        <div className="space-y-2">
-          <HistoryRowSkeleton />
-          <HistoryRowSkeleton />
-          <HistoryRowSkeleton />
-        </div>
-      ) : analyses.length === 0 ? (
-        <p className="py-6 text-center text-sm text-gray-500">
-          No analyses yet — upload your first farm image above
-        </p>
-      ) : (
-        <ul className="space-y-2">
-          {analyses.map((analysis) => {
+      <div className="max-h-[min(70vh,520px)] space-y-2 overflow-y-auto p-3">
+        {isLoading ? (
+          <>
+            <HistoryRowSkeleton />
+            <HistoryRowSkeleton />
+            <HistoryRowSkeleton />
+          </>
+        ) : isError ? (
+          <p className="px-2 py-10 text-center text-sm leading-relaxed text-white/50">
+            Could not load history. Refresh the page to try again.
+          </p>
+        ) : analyses.length === 0 ? (
+          <p className="px-2 py-10 text-center text-sm leading-relaxed text-white/50">
+            Nothing here yet. Your analyses will show up after the first upload.
+          </p>
+        ) : (
+          analyses.map((analysis) => {
             const title =
-              analysis.location ?? analysis.analysis_id.slice(0, 12)
-            const subtitle = [
-              analysis.county,
-              formatHistoryDate(analysis.timestamp),
-            ]
-              .filter(Boolean)
-              .join(' · ')
+              analysis.location ?? analysis.county ?? 'Unnamed plot'
+            const subtitle = formatHistoryDate(analysis.timestamp)
+            const thumbUrl =
+              analysis.overlay_image_url ?? analysis.original_image_url
 
             return (
-              <li key={analysis.analysis_id}>
-                <button
-                  type="button"
-                  onClick={() => onSelect(analysis)}
-                  className="flex w-full items-center gap-3 rounded-lg border border-gray-100 p-3 text-left transition-colors hover:border-green-200 hover:bg-green-50/50"
-                >
-                  <img
-                    src={analysis.overlay_image_url}
-                    alt=""
-                    className="h-10 w-10 shrink-0 rounded-lg object-cover"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-gray-900">
-                      {title}
-                    </p>
-                    <p className="truncate text-xs text-gray-500">{subtitle}</p>
-                  </div>
-                  <span className="shrink-0 rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">
+              <button
+                key={analysis.analysis_id}
+                type="button"
+                onClick={() => onSelect(analysis)}
+                className="flex w-full items-center gap-3 rounded-2xl border border-white/15 bg-white/5 p-3 text-left transition-colors hover:bg-white/15"
+              >
+                <img
+                  src={thumbUrl}
+                  alt=""
+                  className="h-12 w-12 shrink-0 rounded-lg object-cover ring-1 ring-white/20"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-white">
+                    {title}
+                  </p>
+                  <p className="text-xs text-white/50">{subtitle}</p>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="text-sm font-bold tabular-nums text-white">
                     {analysis.total_tree_count}
-                  </span>
-                  <TablerIcon
-                    name="ti-chevron-right"
-                    className="shrink-0 text-gray-400"
-                  />
-                </button>
-              </li>
+                  </p>
+                  <p className="text-[10px] uppercase tracking-wide text-white/40">
+                    trees
+                  </p>
+                </div>
+              </button>
             )
-          })}
-        </ul>
-      )}
+          })
+        )}
+      </div>
     </section>
   )
 }

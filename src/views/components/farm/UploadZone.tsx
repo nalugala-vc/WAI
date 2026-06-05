@@ -1,6 +1,7 @@
-import { useCallback, useRef, useState, type DragEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from 'react'
 import type { UploadStatus } from '../../../viewmodels/useTreesViewModel'
 import { TablerIcon } from '../common/TablerIcon'
+import { farmHeading, farmPanel, farmStepBadge, farmSubtext } from './farmUi'
 
 const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
@@ -28,9 +29,19 @@ export function UploadZone({
   const [isDragging, setIsDragging] = useState(false)
   const [sizeError, setSizeError] = useState<string | null>(null)
 
-  const isUploading = uploadStatus === 'uploading'
   const isError = uploadStatus === 'error'
-  const disabled = isUploading
+  const disabled = uploadStatus === 'uploading'
+
+  const previewUrl = useMemo(
+    () => (selectedFile ? URL.createObjectURL(selectedFile) : null),
+    [selectedFile],
+  )
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl)
+    }
+  }, [previewUrl])
 
   const validateAndSelect = useCallback(
     (file: File | undefined) => {
@@ -38,12 +49,12 @@ export function UploadZone({
       setSizeError(null)
 
       if (!ACCEPTED_TYPES.includes(file.type)) {
-        setSizeError('Please upload a JPEG, PNG, or WebP image.')
+        setSizeError('Use JPEG, PNG, or WebP.')
         return
       }
 
       if (file.size > MAX_FILE_SIZE_BYTES) {
-        setSizeError('File exceeds 20 MB limit. Choose a smaller image.')
+        setSizeError('Image must be under 20 MB.')
         return
       }
 
@@ -68,90 +79,110 @@ export function UploadZone({
     if (inputRef.current) inputRef.current.value = ''
   }
 
-  const borderClass = isError
-    ? 'border-red-400 bg-red-50'
+  const dropzoneClass = isError
+    ? 'border-red-400/60 bg-red-500/10'
     : isDragging
-      ? 'border-green-500 bg-green-50'
-      : 'border-gray-300 bg-white'
+      ? 'border-white/50 bg-white/15'
+      : selectedFile
+        ? 'border-white/30 bg-white/5'
+        : 'border-white/25 border-dashed bg-white/5 hover:border-white/40 hover:bg-white/10'
 
   return (
-    <section className="space-y-2">
-      <div
-        role="button"
-        tabIndex={disabled ? -1 : 0}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter' || event.key === ' ') {
-            if (!disabled) inputRef.current?.click()
-          }
-        }}
-        onClick={() => {
-          if (!disabled) inputRef.current?.click()
-        }}
-        onDragOver={(event) => {
-          event.preventDefault()
-          if (!disabled) setIsDragging(true)
-        }}
-        onDragLeave={() => setIsDragging(false)}
-        onDrop={handleDrop}
-        className={`rounded-xl border-2 border-dashed p-8 text-center transition-colors ${borderClass} ${disabled ? 'cursor-not-allowed opacity-70' : 'cursor-pointer hover:border-green-400'}`}
-      >
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          className="hidden"
-          disabled={disabled}
-          onChange={(event) => validateAndSelect(event.target.files?.[0])}
-        />
-
-        {isUploading ? (
-          <div className="flex flex-col items-center gap-3">
-            <span className="inline-block h-8 w-8 animate-spin rounded-full border-2 border-green-600 border-t-transparent" />
-            <p className="text-sm font-medium text-gray-700">
-              Analysing image…
-            </p>
+    <section className={`${farmPanel} overflow-hidden`}>
+      <div className="border-b border-white/20 px-5 py-4">
+        <div className="flex items-center gap-3">
+          <span className={farmStepBadge}>
+            1
+          </span>
+          <div>
+            <p className={farmHeading}>Add your photo</p>
+            <p className={farmSubtext}>Field shot or drone image works best</p>
           </div>
-        ) : selectedFile ? (
-          <div className="flex flex-col items-center gap-2">
-            <TablerIcon name="ti-photo" className="text-3xl text-green-600" />
-            <p className="text-sm font-medium text-gray-900">{selectedFile.name}</p>
-            <p className="text-xs text-gray-500">
-              {formatFileSize(selectedFile.size)}
-            </p>
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation()
-                handleRemove()
-              }}
-              className="mt-1 rounded-full px-2 py-0.5 text-xs text-gray-500 hover:bg-gray-100 hover:text-gray-800"
-              aria-label="Remove file"
-            >
-              × Remove
-            </button>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-2">
-            <TablerIcon name="ti-cloud-upload" className="text-4xl text-gray-400" />
-            <p className="text-sm font-medium text-gray-700">
-              Drag & drop a farm canopy image
-            </p>
-            <p className="text-xs text-gray-500">
-              or click to browse · JPEG, PNG, WebP · max 20 MB
-            </p>
-          </div>
-        )}
+        </div>
       </div>
 
-      {sizeError ? (
-        <p className="text-sm text-red-600">{sizeError}</p>
-      ) : null}
+      <div className="p-5">
+        <div
+          role="button"
+          tabIndex={disabled ? -1 : 0}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              if (!disabled) inputRef.current?.click()
+            }
+          }}
+          onClick={() => {
+            if (!disabled) inputRef.current?.click()
+          }}
+          onDragOver={(event) => {
+            event.preventDefault()
+            if (!disabled) setIsDragging(true)
+          }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={handleDrop}
+          className={`relative overflow-hidden rounded-xl border-2 p-2 transition-all ${dropzoneClass} ${disabled ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}
+        >
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            disabled={disabled}
+            onChange={(event) => validateAndSelect(event.target.files?.[0])}
+          />
 
-      {isError && !sizeError ? (
-        <p className="text-sm text-red-600">
-          Upload failed, try again
-        </p>
-      ) : null}
+          {selectedFile && previewUrl ? (
+            <div className="relative">
+              <img
+                src={previewUrl}
+                alt="Selected canopy"
+                className="aspect-[16/10] w-full rounded-lg object-cover"
+              />
+              <div className="absolute inset-x-0 bottom-0 rounded-b-lg bg-gradient-to-t from-black/90 to-transparent px-4 py-3">
+                <p className="truncate text-sm font-medium text-white">
+                  {selectedFile.name}
+                </p>
+                <p className="text-xs text-white/60">
+                  {formatFileSize(selectedFile.size)}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  handleRemove()
+                }}
+                className="absolute right-3 top-3 rounded-lg bg-black/70 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm hover:bg-black/90"
+              >
+                Change
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/20 bg-white/10">
+                <TablerIcon name="ti-photo-up" className="text-2xl text-white/80" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-white">
+                  Drop image here or click to browse
+                </p>
+                <p className="mt-1 text-xs text-white/50">
+                  JPEG, PNG, WebP · max 20 MB
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {sizeError ? (
+          <p className="mt-3 text-sm text-red-300">{sizeError}</p>
+        ) : null}
+
+        {isError && !sizeError ? (
+          <p className="mt-3 text-sm text-red-300">
+            Something went wrong — try another image.
+          </p>
+        ) : null}
+      </div>
     </section>
   )
 }

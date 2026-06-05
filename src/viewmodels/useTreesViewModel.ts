@@ -46,6 +46,7 @@ export function useTreesViewModel() {
       setCurrentResult(data)
       setUploadStatus('success')
       void queryClient.invalidateQueries({ queryKey: ['tree-history'] })
+      void queryClient.invalidateQueries({ queryKey: ['tree-quota'] })
     },
     onError: () => {
       setUploadStatus('error')
@@ -94,7 +95,10 @@ export function useTreesViewModel() {
     setNotes,
     history,
     isHistoryLoading: historyQuery.isLoading,
+    isHistoryError: historyQuery.isError,
     quota,
+    isQuotaLoading: quotaQuery.isLoading,
+    isQuotaError: quotaQuery.isError,
     selectResult,
     reset,
   }

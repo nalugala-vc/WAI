@@ -22,15 +22,19 @@ export interface TreeAnalysisResult {
   total_tree_count: number
   tree_density_per_acre: number | null
   confidence_score: number
-  canopy_coverage_pct: number
+  canopy_coverage_pct: number | null
   tree_health: TreeHealthBreakdown
   low_confidence: boolean
   tree_species_guess: string | null
+  image_perspective?: string | null
+  coverage_estimate?: number | null
+  cv_count_used?: boolean
   observations: string[]
   recommendations: string[]
   original_image_url: string
-  overlay_image_url: string
-  cv_debug: CVDebug
+  overlay_image_url: string | null
+  cv_debug: CVDebug | null
+  gemini_error?: string | null
 }
 
 export interface TreeAnalysisHistory {

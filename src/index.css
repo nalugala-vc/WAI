@@ -1,3 +1,32 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@keyframes canopy-scan {
+  0% {
+    top: -30%;
+  }
+  100% {
+    top: 110%;
+  }
+}
+
+@keyframes canopy-pulse-ring {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 0.85;
+  }
+}
+
+.canopy-scan-line {
+  animation: canopy-scan 2.4s ease-in-out infinite;
+}
+
+.canopy-pulse-ring {
+  animation: canopy-pulse-ring 2s ease-in-out infinite;
+}
