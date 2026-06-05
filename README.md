@@ -16,7 +16,7 @@ Shamba Intel is a React application built for the [Weather-AI](https://weather-a
 ## Table of contents
 
 1. [Overview](#overview)
-2. [Screenshots & device mockups](#screenshots--device-mockups)
+2. [Screenshots](#screenshots)
 3. [Features](#features)
 4. [Architecture](#architecture)
 5. [Weather-AI APIs implemented](#weather-ai-apis-implemented)
@@ -44,34 +44,11 @@ The app uses a strict **MVVM** separation so API, state, and UI concerns remain 
 
 ---
 
-## Screenshots & device mockups
+## Screenshots
 
-### Main application
-
-| Dashboard (weather) | Canopy analysis |
-|---------------------|-----------------|
-| ![Dashboard screenshot](docs/screenshots/dashboard.png) | ![Canopy screenshot](docs/screenshots/canopy.png) |
-
-_Add screenshots to `docs/screenshots/` before submission — capture from [wai-jade.vercel.app](https://wai-jade.vercel.app/) or `npm run dev`._
-
-### Interactive device previews (`/demo`)
-
-The **`/demo`** route wraps the **live dashboard** inside realistic device frames using [`react-device-mockup`](https://www.npmjs.com/package/react-device-mockup) (phones/tablet) and a custom laptop frame with scale-to-fit rendering.
-
-| iPhone | Android | iPad (landscape) | Laptop |
-|--------|---------|------------------|--------|
-| ![iPhone mockup](docs/screenshots/mockup-iphone.png) | ![Android mockup](docs/screenshots/mockup-android.png) | ![iPad mockup](docs/screenshots/mockup-ipad.png) | ![Laptop mockup](docs/screenshots/mockup-laptop.png) |
-
-**Try it live:** [wai-jade.vercel.app/demo](https://wai-jade.vercel.app/demo)
-
-To regenerate screenshots locally:
-
-```bash
-npm run dev
-# Open https://wai-jade.vercel.app/demo and capture each device tab
-# Save as docs/screenshots/mockup-{iphone,android,ipad,laptop}.png
-# Open https://wai-jade.vercel.app/ and /farm for dashboard.png and canopy.png
-```
+| iPhone | Laptop |
+|--------|--------|
+| ![iPhone — weather dashboard](docs/screenshots/mockup-iphone.png) | ![Laptop — weather dashboard](docs/screenshots/mockup-laptop.png) |
 
 ---
 
@@ -465,7 +442,7 @@ Place search uses Nominatim (see [Nominatim / place search configuration](#nomin
 
 ```
 WAI/
-├── docs/screenshots/          # README mockup images (add before submit)
+├── docs/screenshots/          # README screenshots
 ├── src/
 │   ├── constants/             # API endpoints, geocoding config
 │   ├── models/                # TypeScript API & domain types
@@ -499,7 +476,7 @@ WAI/
 
 - [ ] Public GitHub repository link
 - [ ] This `README.md` with setup instructions
-- [ ] Screenshots in `docs/screenshots/` (dashboard, canopy, four device mockups)
+- [x] Screenshots in `docs/screenshots/`
 - [x] Live deployment: [wai-jade.vercel.app](https://wai-jade.vercel.app/) · [demo](https://wai-jade.vercel.app/demo) · [canopy](https://wai-jade.vercel.app/farm)
 - [x] `WAI_API_KEY` set on Vercel (server proxy for CORS)
 
