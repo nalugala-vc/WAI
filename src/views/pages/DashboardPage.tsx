@@ -12,7 +12,6 @@ import { DashboardSidebar } from '../components/weather/DashboardSidebar'
 import { DashboardSkeleton } from '../components/weather/DashboardSkeleton'
 import { ForecastStrip } from '../components/weather/ForecastStrip'
 import { TodayHighlights } from '../components/weather/TodayHighlights'
-import type { ChartMode } from '../components/weather/TemperatureChart'
 import { TemperatureChart } from '../components/weather/TemperatureChart'
 import { isToday } from '../../utils/formatters'
 
@@ -53,7 +52,6 @@ export default function DashboardPage() {
   const country = weather.location.country
 
   const todayDaily = weather.daily.find((day) => isToday(day.date))
-  const chartMode: ChartMode = viewTab === 'today' ? 'hourly' : 'weekly'
 
   const condition = weather.current?.condition ?? 'clear'
   const isDay = weather.current?.is_day ?? true
@@ -172,7 +170,6 @@ export default function DashboardPage() {
                   hourly={weather.hourly}
                   daily={weather.daily}
                   units={units}
-                  mode={chartMode}
                 />
 
                 <AISummaryBanner
