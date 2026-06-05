@@ -15,7 +15,7 @@ export function useGeoViewModel() {
 
   const query = useQuery({
     queryKey: geoQueryKeys.detect(lang),
-    queryFn: () => fetchGeoWeather({ days: 7, lang, ai: true }),
+    queryFn: () => fetchGeoWeather({ days: 7, lang, ai: false }),
     staleTime: Infinity,
     retry: 2,
   })
@@ -29,6 +29,8 @@ export function useGeoViewModel() {
       geo.lon,
       geo.city,
       geo.region,
+      geo.country,
+      geo.country.length === 2 ? geo.country.toUpperCase() : '',
       'geo',
     )
   }, [query.data, locationSource, setLocation])

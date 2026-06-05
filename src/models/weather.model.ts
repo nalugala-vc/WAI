@@ -36,6 +36,7 @@ export interface WeatherLocation {
   country: string
   lat: number
   lon: number
+  timezone?: string
 }
 
 export interface WeatherAiMeta {

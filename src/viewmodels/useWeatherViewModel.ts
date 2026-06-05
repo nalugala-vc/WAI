@@ -48,7 +48,8 @@ export function useWeatherViewModel(
 
   const weatherQuery = useQuery({
     queryKey: weatherQueryKeys.summary(lat ?? 0, lon ?? 0, lang, units),
-    queryFn: () => fetchWeather(lat!, lon!, { days: 7, lang, units, ai: true }),
+    queryFn: () =>
+      fetchWeather(lat!, lon!, { days: 7, lang, units, ai: false }),
     enabled,
   })
 
@@ -60,20 +61,14 @@ export function useWeatherViewModel(
 
   const dailyQuery = useQuery({
     queryKey: weatherQueryKeys.daily(lat ?? 0, lon ?? 0, units),
-    queryFn: () => fetchDaily(lat!, lon!, { days: 7, units, ai: true }),
+    queryFn: () => fetchDaily(lat!, lon!, { days: 7, units }),
     enabled,
   })
 
-  const insightsEnabled =
-    enabled &&
-    weatherQuery.isSuccess &&
-    !(weatherQuery.data?.ai_summary ?? '').trim()
-
   const insightsQuery = useQuery({
     queryKey: weatherQueryKeys.insights(lat ?? 0, lon ?? 0, lang, units),
-    queryFn: () =>
-      fetchInsights(lat!, lon!, { days: 7, units, lang }),
-    enabled: insightsEnabled,
+    queryFn: () => fetchInsights(lat!, lon!, { days: 7, units, lang }),
+    enabled: false, // AI quota disabled — re-enable when on Pro plan
   })
 
   const isLoading =
@@ -95,18 +90,14 @@ export function useWeatherViewModel(
     dailyQuery.data?.daily ?? weatherQuery.data?.daily ?? []
   const hourly: HourlyForecast[] =
     hourlyQuery.data?.hourly ?? weatherQuery.data?.hourly ?? []
-  const aiSummary =
-    (weatherQuery.data?.ai_summary ?? '').trim() ||
-    (insightsQuery.data?.ai_summary ?? '').trim()
-  const aiUnavailableReason =
-    aiSummary
-      ? ''
-      : insightsQuery.data?.ai_unavailable_reason ??
-        weatherQuery.data?.ai_unavailable_reason ??
-        ''
-  const aiSummaryLoading =
-    weatherQuery.isLoading ||
-    (insightsEnabled && insightsQuery.isLoading)
+  const aiSummary = (weatherQuery.data?.ai_summary ?? '').trim()
+  const aiUnavailableReason = aiSummary
+    ? ''
+    : (weatherQuery.data?.ai_unavailable_reason ??
+        (lang === 'sw'
+          ? 'Muhtasari wa AI haupatikani kwa mpango wa bure. Boresha hadi Pro kwa maarifa ya Gemini — utabiri bado unapakia bila AI.'
+          : 'AI summaries are not available on the free plan. Upgrade to Pro for Gemini insights — weather data still loads normally.'))
+  const aiSummaryLoading = weatherQuery.isLoading
   const location = weatherQuery.data?.location ?? {
     city: '',
     region: '',

@@ -25,8 +25,68 @@ import lottieThunderstorm from '../assets/lotties/Thunderstorm.json'
 import lottieWindy from '../assets/lotties/windy.json'
 import lottieFallback from '../assets/lotties/fall back.json'
 
-function getTimeOfDay(): 'sunrise' | 'sunset' | 'day' | 'night' {
-  const hour = new Date().getHours()
+export type ConditionCategory =
+  | 'thunder'
+  | 'heavyRain'
+  | 'rain'
+  | 'fog'
+  | 'wind'
+  | 'partly'
+  | 'overcast'
+  | 'clear'
+  | 'fallback'
+
+/** Shared matcher so Lottie and background always agree. */
+export function resolveConditionCategory(condition: string): ConditionCategory {
+  const c = condition.toLowerCase().trim()
+  if (!c) return 'fallback'
+
+  if (c.includes('thunder') || c.includes('storm')) return 'thunder'
+  if (c.includes('heavy rain') || c.includes('torrential')) return 'heavyRain'
+  if (
+    c.includes('drizzle') ||
+    c.includes('light rain') ||
+    c.includes('shower') ||
+    c.includes('rain')
+  ) {
+    return 'rain'
+  }
+  if (c.includes('fog') || c.includes('mist') || c.includes('haze')) return 'fog'
+  if (c.includes('wind') || c.includes('breezy') || c.includes('gust')) {
+    return 'wind'
+  }
+  if (/\bmainly\s*clear\b/.test(c) || c.includes('mainly_clear')) return 'clear'
+  // Partly before generic "cloudy" — "partly cloudy" must not map to overcast.
+  if (c.includes('partly') || c.includes('partial')) return 'partly'
+  if (c.includes('overcast')) return 'overcast'
+  if (c.includes('cloudy')) return 'overcast'
+  if (c.includes('sunny') || /\bclear\b/.test(c)) {
+    return 'clear'
+  }
+
+  return 'fallback'
+}
+
+function getHourInTimezone(timezone?: string): number {
+  const tz =
+    timezone?.trim() ||
+    Intl.DateTimeFormat().resolvedOptions().timeZone
+  try {
+    const hour = Number(
+      new Intl.DateTimeFormat('en-GB', {
+        timeZone: tz,
+        hour: 'numeric',
+        hour12: false,
+      }).format(new Date()),
+    )
+    return Number.isFinite(hour) ? hour : new Date().getHours()
+  } catch {
+    return new Date().getHours()
+  }
+}
+
+function getTimeOfDay(timezone?: string): 'sunrise' | 'sunset' | 'day' | 'night' {
+  const hour = getHourInTimezone(timezone)
   if (hour >= 5 && hour < 8) return 'sunrise'
   if (hour >= 17 && hour < 20) return 'sunset'
   if (hour >= 8 && hour < 17) return 'day'
@@ -36,95 +96,117 @@ function getTimeOfDay(): 'sunrise' | 'sunset' | 'day' | 'night' {
 export function getConditionBackground(
   condition: string,
   isDay: boolean,
+  timezone?: string,
 ): string {
-  const c = condition.toLowerCase()
-  const timeOfDay = getTimeOfDay()
+  const category = resolveConditionCategory(condition)
+
+  // Night: always follow API day/night — mainly clear → clear night, etc.
+  if (!isDay) {
+    switch (category) {
+      case 'thunder':
+        return bgThunderstorm
+      case 'heavyRain':
+        return bgHeavyRain
+      case 'rain':
+        return bgHeavyRain
+      case 'fog':
+        return bgFogMist
+      case 'wind':
+        return bgWindy
+      case 'overcast':
+        return bgOvercastNight
+      case 'partly':
+        return bgPartlyCloudyNight
+      case 'clear':
+        return bgClearNight
+      default:
+        return bgClearNight
+    }
+  }
+
+  const timeOfDay = getTimeOfDay(timezone)
 
   if (
     timeOfDay === 'sunrise' &&
-    isDay &&
-    (c.includes('clear') || c.includes('sunny') || c.includes('partly'))
+    (category === 'clear' || category === 'partly')
   ) {
     return bgSunrise
   }
 
   if (
     timeOfDay === 'sunset' &&
-    isDay &&
-    (c.includes('clear') || c.includes('sunny') || c.includes('partly'))
+    (category === 'clear' || category === 'partly')
   ) {
     return bgSunset
   }
 
-  if (c.includes('thunder') || c.includes('storm')) return bgThunderstorm
-  if (c.includes('heavy rain') || c.includes('torrential')) return bgHeavyRain
-  if (
-    c.includes('drizzle') ||
-    c.includes('light rain') ||
-    c.includes('shower') ||
-    c.includes('rain')
-  ) {
-    return isDay ? bgLightRain : bgHeavyRain
+  switch (category) {
+    case 'thunder':
+      return bgThunderstorm
+    case 'heavyRain':
+      return bgHeavyRain
+    case 'rain':
+      return bgLightRain
+    case 'fog':
+      return bgFogMist
+    case 'wind':
+      return bgWindy
+    case 'overcast':
+      return bgOvercastDay
+    case 'partly':
+      return bgPartlyCloudyDay
+    case 'clear':
+      return bgSunny
+    default:
+      return bgFallback
   }
-  if (c.includes('fog') || c.includes('mist') || c.includes('haze')) {
-    return bgFogMist
-  }
-  if (c.includes('wind') || c.includes('breezy') || c.includes('gust')) {
-    return bgWindy
-  }
-  if (c.includes('overcast') || c.includes('cloudy')) {
-    return isDay ? bgOvercastDay : bgOvercastNight
-  }
-  if (c.includes('partly') || c.includes('partial')) {
-    return isDay ? bgPartlyCloudyDay : bgPartlyCloudyNight
-  }
-  if (c.includes('sunny') || c.includes('clear')) {
-    return isDay ? bgSunny : bgClearNight
-  }
-
-  return bgFallback
 }
 
 function cloneLottieAsset(asset: object): object {
-  // Lottie mutates animationData in place; clone so Strict Mode re-renders stay safe.
   return structuredClone(asset)
 }
 
 export function getConditionLottie(condition: string, isDay: boolean): object {
-  const c = condition.toLowerCase()
+  const category = resolveConditionCategory(condition)
   let asset: object = lottieFallback
 
-  if (c.includes('thunder') || c.includes('storm')) {
-    asset = lottieThunderstorm
-  } else if (c.includes('heavy rain') || c.includes('torrential')) {
-    asset = lottieHeavyRain
-  } else if (
-    c.includes('drizzle') ||
-    c.includes('light rain') ||
-    c.includes('shower') ||
-    c.includes('rain')
-  ) {
-    asset = lottieLightRain
-  } else if (c.includes('fog') || c.includes('mist') || c.includes('haze')) {
-    asset = lottieFogMist
-  } else if (c.includes('wind') || c.includes('breezy') || c.includes('gust')) {
-    asset = lottieWindy
-  } else if (c.includes('overcast') || c.includes('cloudy')) {
-    asset = lottieOvercast
-  } else if (c.includes('partly') || c.includes('partial')) {
-    asset = isDay ? lottiePartlyCloudyDay : lottiePartlyCloudyNight
-  } else if (c.includes('sunny') || c.includes('clear')) {
-    asset = isDay ? lottieSunny : lottieClearNight
+  switch (category) {
+    case 'thunder':
+      asset = lottieThunderstorm
+      break
+    case 'heavyRain':
+      asset = lottieHeavyRain
+      break
+    case 'rain':
+      asset = lottieLightRain
+      break
+    case 'fog':
+      asset = lottieFogMist
+      break
+    case 'wind':
+      asset = lottieWindy
+      break
+    case 'overcast':
+      asset = lottieOvercast
+      break
+    case 'partly':
+      asset = isDay ? lottiePartlyCloudyDay : lottiePartlyCloudyNight
+      break
+    case 'clear':
+      asset = isDay ? lottieSunny : lottieClearNight
+      break
+    default:
+      asset = lottieFallback
   }
 
   return cloneLottieAsset(asset)
 }
 
 export function getOverlayOpacity(condition: string, isDay: boolean): number {
-  const c = condition.toLowerCase()
-  if (c.includes('thunder') || c.includes('storm')) return 0.55
+  const category = resolveConditionCategory(condition)
+  if (category === 'thunder') return 0.55
   if (!isDay) return 0.5
-  if (c.includes('rain')) return 0.45
-  if (c.includes('overcast') || c.includes('fog')) return 0.4
+  if (category === 'rain' || category === 'heavyRain') return 0.45
+  if (category === 'overcast' || category === 'fog') return 0.4
   return 0.3
 }

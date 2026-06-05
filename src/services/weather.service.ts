@@ -137,7 +137,7 @@ export async function fetchWeather(
       days: options?.days ?? 7,
       units: options?.units ?? 'metric',
       lang,
-      ai: options?.ai ?? true,
+      ai: options?.ai ?? false,
     },
     lang,
   )
@@ -156,7 +156,7 @@ export async function fetchCurrent(
     {
       units: options?.units ?? 'metric',
       lang,
-      ai: options?.ai ?? true,
+      ai: false,
     },
     lang,
   )
@@ -170,7 +170,7 @@ export async function fetchDaily(
   return fetchWeatherPayload(ENDPOINTS.DAILY, lat, lon, {
     days: options?.days ?? 7,
     units: options?.units ?? 'metric',
-    ai: options?.ai ?? true,
+    ai: false,
   })
 }
 
@@ -182,5 +182,6 @@ export async function fetchHourly(
   return fetchWeatherPayload(ENDPOINTS.HOURLY, lat, lon, {
     days: options?.days ?? 1,
     units: options?.units ?? 'metric',
+    ai: false,
   })
 }

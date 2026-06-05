@@ -120,18 +120,62 @@ function parseConditionFromIcon(icon?: string): string | null {
   return match[2].replace(/_/g, ' ')
 }
 
+function parseConditionFromIconPath(iconPath?: string): string | null {
+  if (!iconPath) return null
+  const wmo = iconPath.match(/wmo-(\d+)-(day|night)/i)
+  if (!wmo) return null
+  return CONDITION_LABELS[wmo[1]] ?? null
+}
+
 export function parseConditionLabel(
   conditionCode: string,
   icon?: string,
+  iconPath?: string,
 ): string {
   const fromIcon = parseConditionFromIcon(icon)
   if (fromIcon) return fromIcon
+  const fromPath = parseConditionFromIconPath(iconPath)
+  if (fromPath) return fromPath
   return CONDITION_LABELS[conditionCode] ?? 'cloudy'
 }
 
-function isDayFromIcon(icon?: string): boolean {
-  if (!icon) return true
-  return icon.includes('_day.') || !icon.includes('_night.')
+function isDayFromIconString(s: string): boolean | null {
+  const lower = s.toLowerCase()
+  if (/-night|_night/i.test(lower)) return false
+  if (/-day|_day/i.test(lower)) return true
+  return null
+}
+
+/**
+ * Determines is_day with a reliable priority chain:
+ * 1. API explicit is_day field
+ * 2. Sunrise/sunset string comparison (both in location local time — most reliable)
+ * 3. Icon filename encoding
+ * 4. Local machine hour fallback
+ */
+function resolveIsDay(
+  apiIsDay: boolean | number | undefined,
+  icon: string | undefined,
+  iconPath: string | undefined,
+  currentTime?: string,
+  sunrise?: string,
+  sunset?: string,
+): boolean {
+  if (apiIsDay !== undefined && apiIsDay !== null) {
+    return Boolean(apiIsDay)
+  }
+  // The API returns current.time, sunrise, and sunset all in the location's
+  // local time (same timezone), so lexicographic comparison is exact.
+  if (currentTime && sunrise && sunset) {
+    return currentTime >= sunrise && currentTime < sunset
+  }
+  for (const s of [icon, iconPath]) {
+    if (!s) continue
+    const result = isDayFromIconString(s)
+    if (result !== null) return result
+  }
+  const hour = new Date().getHours()
+  return hour >= 6 && hour < 20
 }
 
 function findHourForCurrent(
@@ -149,11 +193,12 @@ function mapLocation(
 ): WeatherLocation {
   const { location, ip_geo: ipGeo } = payload
   return {
-    city: ipGeo?.city ?? location.country ?? 'Unknown',
+    city: ipGeo?.city ?? '',
     region: ipGeo?.region ?? '',
     country: ipGeo?.country ?? location.country ?? '',
     lat: location.lat,
     lon: location.lon,
+    timezone: location.timezone,
   }
 }
 
@@ -190,9 +235,20 @@ function mapCurrent(
     uv_index: current.uv_index ?? matchedHour?.uv_index ?? 0,
     precip_mm:
       current.precipitation ?? dailyToday?.precipitation_sum ?? 0,
-    condition: parseConditionLabel(current.condition_code, current.icon),
-    condition_icon: current.icon ?? '',
-    is_day: isDayFromIcon(current.icon),
+    condition: parseConditionLabel(
+      current.condition_code,
+      current.icon,
+      current.icon_path,
+    ),
+    condition_icon: current.icon ?? current.icon_path ?? '',
+    is_day: resolveIsDay(
+      current.is_day,
+      current.icon,
+      current.icon_path,
+      current.time,
+      dailyToday?.sunrise,
+      dailyToday?.sunset,
+    ),
   }
 }
 

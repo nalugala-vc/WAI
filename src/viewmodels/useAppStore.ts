@@ -8,6 +8,8 @@ interface AppStore {
   lon: number | null
   city: string
   region: string
+  country: string
+  countryCode: string
   lang: AppLanguage
   units: 'metric' | 'imperial'
   locationSource: LocationSource
@@ -16,6 +18,8 @@ interface AppStore {
     lon: number,
     city: string,
     region: string,
+    country?: string,
+    countryCode?: string,
     source?: 'geo' | 'manual',
   ) => void
   setLang: (lang: AppLanguage) => void
@@ -27,11 +31,21 @@ export const useAppStore = create<AppStore>((set) => ({
   lon: null,
   city: '',
   region: '',
+  country: '',
+  countryCode: '',
   lang: 'en',
   units: 'metric',
   locationSource: null,
-  setLocation: (lat, lon, city, region, source = 'geo') =>
-    set({ lat, lon, city, region, locationSource: source }),
+  setLocation: (lat, lon, city, region, country = '', countryCode = '', source = 'geo') =>
+    set({
+      lat,
+      lon,
+      city,
+      region,
+      country,
+      countryCode,
+      locationSource: source,
+    }),
   setLang: (lang) => set({ lang }),
   setUnits: (units) => set({ units }),
 }))

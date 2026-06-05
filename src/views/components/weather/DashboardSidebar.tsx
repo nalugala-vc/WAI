@@ -2,124 +2,121 @@ import { useMemo, useState } from 'react'
 import { ConditionLottie } from './ConditionLottie'
 import type { FormEvent } from 'react'
 import type { CurrentWeather } from '../../../models/weather.model'
-import { useAppStore } from '../../../viewmodels/useAppStore'
+import { useLocationSearch } from '../../../viewmodels/useLocationSearch'
 import { getConditionLottie } from '../../../utils/conditionAssets'
 import { getConditionIcon } from '../../../utils/conditionIcon'
-import {
-  formatNowDateTime,
-  formatTemp,
-} from '../../../utils/formatters'
+import { formatNowDateTime, formatTemp } from '../../../utils/formatters'
 import { TablerIcon } from '../common/TablerIcon'
-
-function parseCoordinates(
-  input: string,
-): { lat: number; lon: number } | null {
-  const trimmed = input.trim()
-  const match = trimmed.match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/)
-  if (!match) return null
-  const lat = Number.parseFloat(match[1])
-  const lon = Number.parseFloat(match[2])
-  if (Number.isNaN(lat) || Number.isNaN(lon)) return null
-  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null
-  return { lat, lon }
-}
+import { AISummaryBanner } from './AISummaryBanner'
 
 export interface DashboardSidebarProps {
-  city: string
-  region: string
-  country: string
   current: CurrentWeather
   units: 'metric' | 'imperial'
+  lang: 'en' | 'sw'
+  aiSummary: string
+  aiUnavailableReason?: string
+  aiSummaryLoading: boolean
 }
 
 export function DashboardSidebar({
-  city,
-  region,
-  country,
   current,
   units,
+  lang,
+  aiSummary,
+  aiUnavailableReason,
+  aiSummaryLoading,
 }: DashboardSidebarProps) {
   const [query, setQuery] = useState('')
-  const locationSource = useAppStore((state) => state.locationSource)
-  const setLocation = useAppStore((state) => state.setLocation)
+  const { search, isSearching, error, clearError } = useLocationSearch()
 
   const icon = getConditionIcon(current.condition)
   const lottieData = useMemo(
     () => getConditionLottie(current.condition, current.is_day),
     [current.condition, current.is_day],
   )
-  const locationLabel = [city, region, country].filter(Boolean).join(', ')
   const rainLine = current.precip_mm > 0
     ? `Rain · ${current.precip_mm.toFixed(1)} mm`
     : `Rain chance from forecast`
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (!query.trim()) return
-    // TODO: integrate geocoding API to resolve location names to lat/lon
-    const coords = parseCoordinates(query)
-    if (coords) {
-      setLocation(coords.lat, coords.lon, query.trim(), '', 'manual')
-    }
+    if (!query.trim() || isSearching) return
+    const ok = await search(query)
+    if (ok) setQuery('')
   }
 
   return (
-    <aside className="flex flex-col gap-6 rounded-3xl border border-white/20 bg-white/10 p-6 backdrop-blur-md lg:min-h-[640px]">
-      <form onSubmit={handleSubmit} className="relative">
-        <TablerIcon
-          name="ti-search"
-          className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-        />
-        <input
-          type="search"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search for places..."
-          className="w-full rounded-2xl bg-slate-50 py-3.5 pl-11 pr-12 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
-        />
-        <button
-          type="button"
-          className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100"
-          aria-label="Location settings"
-        >
-          <TablerIcon name="ti-map-pin" />
-        </button>
-      </form>
+    <aside className="flex h-full min-h-0 flex-col rounded-3xl border border-white/20 bg-white/10 p-4 backdrop-blur-md lg:p-5">
+      <div className="flex min-h-0 flex-1 flex-col gap-4">
+        <form onSubmit={handleSubmit} className="relative shrink-0">
+          <TablerIcon
+            name="ti-search"
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/50"
+          />
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => {
+              setQuery(event.target.value)
+              if (error) clearError()
+            }}
+            placeholder="Search city…"
+            disabled={isSearching}
+            className="w-full rounded-2xl border border-white/25 bg-white/10 py-3 pl-10 pr-11 text-sm text-white placeholder:text-white/45 backdrop-blur-sm focus:border-white/40 focus:bg-white/15 focus:outline-none focus:ring-1 focus:ring-white/30 disabled:opacity-60"
+          />
+          <button
+            type="submit"
+            disabled={isSearching || !query.trim()}
+            className="absolute right-2.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-white/70 hover:bg-white/10 disabled:opacity-40"
+            aria-label={isSearching ? 'Searching…' : 'Search location'}
+          >
+            {isSearching ? (
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+            ) : (
+              <TablerIcon name="ti-map-pin" />
+            )}
+          </button>
+        </form>
 
-      {locationSource === 'geo' ? (
-        <span className="-mt-4 inline-flex w-fit items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
-          Auto-detected
-        </span>
-      ) : null}
+        {error ? (
+          <p className="-mt-2 shrink-0 text-xs text-amber-200" role="alert">
+            {error}
+          </p>
+        ) : null}
 
-      <div className="flex flex-col items-center py-4 text-center">
-        <ConditionLottie
-          animationData={lottieData}
-          condition={current.condition}
-        />
-        <p className="mt-4 text-6xl font-semibold tracking-tight text-white">
-          {formatTemp(current.temp, units)}
-        </p>
-        <p className="mt-2 text-sm font-medium text-white/70">
-          {formatNowDateTime()}
-        </p>
+        <div className="flex shrink-0 flex-col items-center py-1 text-center">
+          <ConditionLottie
+            animationData={lottieData}
+            condition={current.condition}
+          />
+          <p className="mt-3 text-5xl font-semibold tracking-tight text-white">
+            {formatTemp(current.temp, units)}
+          </p>
+          <p className="mt-1.5 text-xs font-medium text-white/70">
+            {formatNowDateTime()}
+          </p>
+        </div>
+
+        <div className="shrink-0 space-y-2.5 border-t border-white/20 pt-3">
+          <div className="flex items-center gap-2.5 text-sm text-white">
+            <TablerIcon name={icon} className="text-base text-white/70" />
+            <span className="capitalize">{current.condition}</span>
+          </div>
+          <div className="flex items-center gap-2.5 text-sm text-white/70">
+            <TablerIcon name="ti-cloud-rain" className="text-base text-sky-300" />
+            <span>{rainLine}</span>
+          </div>
+        </div>
       </div>
 
-      <div className="space-y-3 border-t border-white/20 pt-5">
-        <div className="flex items-center gap-3 text-sm text-white">
-          <TablerIcon name={icon} className="text-lg text-white/70" />
-          <span className="capitalize">{current.condition}</span>
-        </div>
-        <div className="flex items-center gap-3 text-sm text-white/70">
-          <TablerIcon name="ti-cloud-rain" className="text-lg text-sky-300" />
-          <span>{rainLine}</span>
-        </div>
-      </div>
-
-      <div className="mt-auto overflow-hidden rounded-2xl border border-white/15 bg-white/10 backdrop-blur-sm">
-        <p className="p-4 text-sm font-semibold text-white">
-          {locationLabel || 'Your location'}
-        </p>
+      <div className="mt-auto shrink-0 pt-4">
+        <AISummaryBanner
+          summary={aiSummary}
+          unavailableReason={aiUnavailableReason}
+          lang={lang}
+          isLoading={aiSummaryLoading}
+          compact
+        />
       </div>
     </aside>
   )

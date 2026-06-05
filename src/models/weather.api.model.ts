@@ -15,6 +15,7 @@ export interface ApiCurrent {
   condition_code: string
   icon?: string
   icon_path?: string
+  is_day?: boolean | number
   humidity?: number
   feels_like?: number
   uv_index?: number

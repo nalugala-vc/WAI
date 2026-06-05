@@ -5,6 +5,8 @@ export interface AISummaryBannerProps {
   unavailableReason?: string
   lang: 'en' | 'sw'
   isLoading: boolean
+  /** Tighter layout for the dashboard sidebar */
+  compact?: boolean
 }
 
 export function AISummaryBanner({
@@ -12,7 +14,11 @@ export function AISummaryBanner({
   unavailableReason,
   lang,
   isLoading,
+  compact = false,
 }: AISummaryBannerProps) {
+  const shell = compact
+    ? 'rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm'
+    : 'rounded-3xl border border-white/20 border-l-4 border-l-white/40 bg-white/10 p-6 backdrop-blur-md'
   const label = lang === 'sw' ? 'Muhtasari wa AI' : 'AI Insights'
   const fallback =
     lang === 'sw'
@@ -21,8 +27,8 @@ export function AISummaryBanner({
 
   if (isLoading) {
     return (
-      <section className="animate-pulse rounded-3xl border border-white/20 bg-white/10 p-6 backdrop-blur-md">
-        <div className="mb-3 h-4 w-28 rounded-lg bg-white/20" />
+      <section className={`animate-pulse ${shell}`}>
+        <div className="mb-2 h-4 w-28 rounded-lg bg-white/20" />
         <div className="space-y-2">
           <div className="h-3 w-full rounded bg-white/20" />
           <div className="h-3 w-5/6 rounded bg-white/20" />
@@ -34,9 +40,13 @@ export function AISummaryBanner({
   const body = summary || unavailableReason || fallback
 
   return (
-    <section className="rounded-3xl border border-white/20 border-l-4 border-l-white/40 bg-white/10 p-6 backdrop-blur-md">
-      <div className="mb-3 flex items-center gap-2">
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15">
+    <section className={shell}>
+      <div className={`flex items-center gap-2 ${compact ? 'mb-2' : 'mb-3'}`}>
+        <span
+          className={`flex items-center justify-center rounded-full bg-white/15 ${
+            compact ? 'h-7 w-7' : 'h-8 w-8'
+          }`}
+        >
           <TablerIcon name="ti-sparkles" className="text-amber-300" />
         </span>
         <p className="text-sm font-semibold text-white/60">{label}</p>
@@ -44,7 +54,7 @@ export function AISummaryBanner({
       <p
         className={`text-sm leading-relaxed ${
           summary ? 'text-white' : 'text-white/70'
-        }`}
+        } ${compact ? 'max-h-48 overflow-y-auto' : ''}`}
       >
         {body}
       </p>

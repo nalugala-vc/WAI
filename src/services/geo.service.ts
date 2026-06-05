@@ -20,7 +20,7 @@ export async function fetchGeoWeather(
         ip: 'auto',
         days: options?.days ?? 7,
         lang: options?.lang ?? 'en',
-        ai: options?.ai ?? true,
+        ai: false,
       },
     },
   )
