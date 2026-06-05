@@ -38,7 +38,7 @@ function UvGauge({ value }: { value: number }) {
           strokeDasharray={`${pct * 151} 151`}
         />
       </svg>
-      <span className="absolute bottom-0 text-3xl font-semibold text-slate-900">
+      <span className="absolute bottom-0 text-3xl font-semibold text-white">
         {value.toFixed(0)}
       </span>
     </div>
@@ -74,9 +74,9 @@ interface HighlightCardProps {
 function HighlightCard({ title, children, className = '' }: HighlightCardProps) {
   return (
     <div
-      className={`flex flex-col rounded-3xl bg-white p-5 shadow-sm ${className}`}
+      className={`flex flex-col rounded-3xl border border-white/15 bg-white/10 p-5 backdrop-blur-md ${className}`}
     >
-      <p className="mb-3 text-sm font-medium text-slate-500">{title}</p>
+      <p className="mb-3 text-sm font-medium text-white/60">{title}</p>
       {children}
     </div>
   )
@@ -92,20 +92,20 @@ export function TodayHighlights({
 
   return (
     <section>
-      <h2 className="mb-4 text-lg font-semibold text-slate-900">
+      <h2 className="mb-4 text-lg font-semibold text-white">
         Today&apos;s Highlights
       </h2>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <HighlightCard title="UV Index">
           <UvGauge value={current.uv_index} />
-          <p className="mt-2 text-center text-xs text-slate-500">{uvLabel}</p>
+          <p className="mt-2 text-center text-xs text-white/60">{uvLabel}</p>
         </HighlightCard>
 
         <HighlightCard title="Wind Status">
-          <p className="text-3xl font-semibold text-slate-900">
+          <p className="text-3xl font-semibold text-white">
             {formatWind(current.wind_kph, units)}
           </p>
-          <div className="mt-3 flex items-center gap-2 text-sm text-slate-500">
+          <div className="mt-3 flex items-center gap-2 text-sm text-white/60">
             <TablerIcon name="ti-navigation" className="text-sky-500" />
             {windDirectionLabel(current.wind_direction)}
           </div>
@@ -114,20 +114,20 @@ export function TodayHighlights({
         <HighlightCard title="Sunrise & Sunset">
           <div className="space-y-3 text-sm">
             <div className="flex items-center justify-between">
-              <span className="flex items-center gap-2 text-slate-600">
+              <span className="flex items-center gap-2 text-white/60">
                 <TablerIcon name="ti-arrow-up" className="text-amber-500" />
                 Sunrise
               </span>
-              <span className="font-medium text-slate-900">
+              <span className="font-medium text-white">
                 {formatTimeShort(todayDaily?.sunrise)}
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="flex items-center gap-2 text-slate-600">
+              <span className="flex items-center gap-2 text-white/60">
                 <TablerIcon name="ti-arrow-down" className="text-indigo-400" />
                 Sunset
               </span>
-              <span className="font-medium text-slate-900">
+              <span className="font-medium text-white">
                 {formatTimeShort(todayDaily?.sunset)}
               </span>
             </div>
@@ -137,10 +137,10 @@ export function TodayHighlights({
         <HighlightCard title="Humidity">
           <div className="flex items-end justify-between gap-4">
             <div>
-              <p className="text-3xl font-semibold text-slate-900">
+              <p className="text-3xl font-semibold text-white">
                 {Math.round(current.humidity)}%
               </p>
-              <p className="mt-1 flex items-center gap-1 text-sm text-slate-500">
+              <p className="mt-1 flex items-center gap-1 text-sm text-white/60">
                 {humidity.label}
                 {humidity.tone === 'good' ? (
                   <TablerIcon name="ti-thumb-up" className="text-emerald-500" />
@@ -160,10 +160,10 @@ export function TodayHighlights({
         <HighlightCard title="Rainfall">
           <div className="flex items-end justify-between gap-4">
             <div>
-              <p className="text-3xl font-semibold text-slate-900">
+              <p className="text-3xl font-semibold text-white">
                 {current.precip_mm.toFixed(1)} mm
               </p>
-              <p className="mt-1 text-sm text-slate-500">Today&apos;s total</p>
+              <p className="mt-1 text-sm text-white/60">Today&apos;s total</p>
             </div>
             <VerticalMeter
               value={Math.min(current.precip_mm, 20)}
@@ -176,10 +176,10 @@ export function TodayHighlights({
         <HighlightCard title="Feels Like">
           <div className="flex items-end justify-between gap-4">
             <div>
-              <p className="text-3xl font-semibold text-slate-900">
+              <p className="text-3xl font-semibold text-white">
                 {Math.round(current.feels_like)}°
               </p>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-sm text-white/60">
                 {current.is_day ? 'Daytime' : 'Nighttime'}
               </p>
             </div>

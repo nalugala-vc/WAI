@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { ConditionLottie } from './ConditionLottie'
 import type { FormEvent } from 'react'
 import type { CurrentWeather } from '../../../models/weather.model'
 import { useAppStore } from '../../../viewmodels/useAppStore'
+import { getConditionLottie } from '../../../utils/conditionAssets'
 import { getConditionIcon } from '../../../utils/conditionIcon'
 import {
   formatNowDateTime,
@@ -42,6 +44,10 @@ export function DashboardSidebar({
   const setLocation = useAppStore((state) => state.setLocation)
 
   const icon = getConditionIcon(current.condition)
+  const lottieData = useMemo(
+    () => getConditionLottie(current.condition, current.is_day),
+    [current.condition, current.is_day],
+  )
   const locationLabel = [city, region, country].filter(Boolean).join(', ')
   const rainLine = current.precip_mm > 0
     ? `Rain · ${current.precip_mm.toFixed(1)} mm`
@@ -58,7 +64,7 @@ export function DashboardSidebar({
   }
 
   return (
-    <aside className="flex flex-col gap-6 rounded-3xl bg-white p-6 shadow-sm lg:min-h-[640px]">
+    <aside className="flex flex-col gap-6 rounded-3xl border border-white/20 bg-white/10 p-6 backdrop-blur-md lg:min-h-[640px]">
       <form onSubmit={handleSubmit} className="relative">
         <TablerIcon
           name="ti-search"
@@ -87,34 +93,33 @@ export function DashboardSidebar({
       ) : null}
 
       <div className="flex flex-col items-center py-4 text-center">
-        <TablerIcon name={icon} className="text-[5.5rem] leading-none text-amber-400" />
-        <p className="mt-4 text-6xl font-semibold tracking-tight text-slate-900">
+        <ConditionLottie
+          animationData={lottieData}
+          condition={current.condition}
+        />
+        <p className="mt-4 text-6xl font-semibold tracking-tight text-white">
           {formatTemp(current.temp, units)}
         </p>
-        <p className="mt-2 text-sm font-medium text-slate-500">
+        <p className="mt-2 text-sm font-medium text-white/70">
           {formatNowDateTime()}
         </p>
       </div>
 
-      <div className="space-y-3 border-t border-slate-100 pt-5">
-        <div className="flex items-center gap-3 text-sm text-slate-600">
-          <TablerIcon name={icon} className="text-lg text-slate-400" />
+      <div className="space-y-3 border-t border-white/20 pt-5">
+        <div className="flex items-center gap-3 text-sm text-white">
+          <TablerIcon name={icon} className="text-lg text-white/70" />
           <span className="capitalize">{current.condition}</span>
         </div>
-        <div className="flex items-center gap-3 text-sm text-slate-600">
-          <TablerIcon name="ti-cloud-rain" className="text-lg text-sky-400" />
+        <div className="flex items-center gap-3 text-sm text-white/70">
+          <TablerIcon name="ti-cloud-rain" className="text-lg text-sky-300" />
           <span>{rainLine}</span>
         </div>
       </div>
 
-      <div className="mt-auto overflow-hidden rounded-2xl">
-        <div className="relative h-36 bg-gradient-to-br from-slate-700 via-slate-600 to-slate-800">
-          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1480714378408-67cf0d13bcff?w=400&q=80')] bg-cover bg-center opacity-60 mix-blend-overlay" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-          <p className="absolute bottom-4 left-4 right-4 text-sm font-semibold text-white">
-            {locationLabel || 'Your location'}
-          </p>
-        </div>
+      <div className="mt-auto overflow-hidden rounded-2xl border border-white/15 bg-white/10 backdrop-blur-sm">
+        <p className="p-4 text-sm font-semibold text-white">
+          {locationLabel || 'Your location'}
+        </p>
       </div>
     </aside>
   )

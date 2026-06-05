@@ -17,16 +17,17 @@ interface ErrorBoundaryProps {
 
 interface ErrorBoundaryState {
   hasError: boolean
+  message: string
 }
 
 class AppErrorBoundary extends Component<
   ErrorBoundaryProps,
   ErrorBoundaryState
 > {
-  state: ErrorBoundaryState = { hasError: false }
+  state: ErrorBoundaryState = { hasError: false, message: '' }
 
-  static getDerivedStateFromError(): ErrorBoundaryState {
-    return { hasError: true }
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, message: error.message }
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
@@ -40,6 +41,9 @@ class AppErrorBoundary extends Component<
           <p className="text-sm font-medium text-red-800">
             Something went wrong loading the app.
           </p>
+          {import.meta.env.DEV && this.state.message ? (
+            <p className="max-w-md text-xs text-red-600">{this.state.message}</p>
+          ) : null}
           <button
             type="button"
             onClick={() => window.location.reload()}

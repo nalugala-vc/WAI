@@ -38,10 +38,18 @@ export interface WeatherLocation {
   lon: number
 }
 
+export interface WeatherAiMeta {
+  requested: boolean
+  allowed: boolean
+  applied: boolean
+}
+
 export interface WeatherResponse {
   location: WeatherLocation
   current: CurrentWeather
   daily: DailyForecast[]
   hourly: HourlyForecast[]
   ai_summary: string
+  ai_unavailable_reason?: string
+  ai_meta?: WeatherAiMeta
 }

@@ -7,6 +7,7 @@ export const ENDPOINTS = {
   HOURLY: '/v1/hourly',
   FORECAST: '/v1/forecast',
   WEATHER_GEO: '/v1/weather-geo',
+  INSIGHTS: '/v1/insights',
   TREES_ANALYZE: '/v1/trees/analyze',
   TREES_HISTORY: '/v1/trees/history',
   TREES_QUOTA: '/v1/trees/quota',

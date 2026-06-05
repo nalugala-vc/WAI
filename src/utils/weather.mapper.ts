@@ -9,9 +9,85 @@ import type {
   CurrentWeather,
   DailyForecast,
   HourlyForecast,
+  WeatherAiMeta,
   WeatherLocation,
   WeatherResponse,
 } from '../models/weather.model'
+
+function asNonEmptyString(value: unknown): string | undefined {
+  if (typeof value === 'string' && value.trim()) return value.trim()
+  return undefined
+}
+
+export function extractAiSummary(payload: ApiWeatherPayload): string {
+  const direct =
+    asNonEmptyString(payload.ai_summary) ??
+    asNonEmptyString(payload.summary) ??
+    asNonEmptyString(payload.ai_insights) ??
+    asNonEmptyString(
+      typeof payload.insights === 'string' ? payload.insights : undefined,
+    )
+  if (direct) return direct
+
+  const insightsObj = payload.insights
+  if (insightsObj && typeof insightsObj === 'object') {
+    const record = insightsObj as Record<string, unknown>
+    const nested =
+      asNonEmptyString(record.summary) ??
+      asNonEmptyString(record.text) ??
+      asNonEmptyString(record.message)
+    if (nested) return nested
+  }
+
+  const ai = payload.ai
+  if (typeof ai === 'string') return asNonEmptyString(ai) ?? ''
+  if (ai && typeof ai === 'object') {
+    const record = ai as Record<string, unknown>
+    return (
+      asNonEmptyString(record.summary) ??
+      asNonEmptyString(record.text) ??
+      asNonEmptyString(record.insights) ??
+      asNonEmptyString(record.message) ??
+      ''
+    )
+  }
+
+  return ''
+}
+
+export function parseAiResponseHeaders(
+  headers: Record<string, unknown>,
+): WeatherAiMeta {
+  const pick = (key: string) => {
+    const value = headers[key]
+    if (value == null) return undefined
+    if (Array.isArray(value)) return String(value[0])
+    return String(value)
+  }
+
+  return {
+    requested: pick('x-ai-requested') === 'true',
+    allowed: pick('x-ai-allow') === 'true',
+    applied: pick('x-ai-applied') === 'true',
+  }
+}
+
+export function defaultAiUnavailableReason(
+  meta: WeatherAiMeta | undefined,
+  lang: 'en' | 'sw',
+): string {
+  if (lang === 'sw') {
+    if (meta && !meta.allowed) {
+      return 'Muhtasari wa AI haupatikani kwa mpango wako wa sasa. Boresha hadi Pro ili kupata maarifa ya Gemini.'
+    }
+    return 'Hakuna muhtasari wa AI kwa eneo hili kwa sasa. Jaribu tena baadaye.'
+  }
+
+  if (meta && !meta.allowed) {
+    return 'AI summaries are not enabled for your API key. Upgrade to a Pro or Scale plan for Gemini insights.'
+  }
+  return 'No AI summary is available for this location yet. Try again later or upgrade your plan.'
+}
 
 const CONDITION_LABELS: Record<string, string> = {
   '0': 'clear',
@@ -158,7 +234,7 @@ export function mapWeatherResponse(payload: ApiWeatherPayload): WeatherResponse 
     current: mapCurrent(payload.current, hourly, today),
     daily: daily.map(mapDailyEntry),
     hourly: hourly.map(mapHourlyEntry),
-    ai_summary: payload.ai_summary ?? payload.summary ?? '',
+    ai_summary: extractAiSummary(payload),
   }
 }
 

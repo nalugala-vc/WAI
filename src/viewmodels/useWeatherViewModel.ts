@@ -7,6 +7,7 @@ import type {
 import {
   fetchDaily,
   fetchHourly,
+  fetchInsights,
   fetchWeather,
 } from '../services/weather.service'
 import { useAppStore } from './useAppStore'
@@ -29,6 +30,12 @@ export const weatherQueryKeys = {
     lon: number,
     units: 'metric' | 'imperial',
   ) => [...weatherQueryKeys.all, 'daily', lat, lon, units] as const,
+  insights: (
+    lat: number,
+    lon: number,
+    lang: 'en' | 'sw',
+    units: 'metric' | 'imperial',
+  ) => [...weatherQueryKeys.all, 'insights', lat, lon, lang, units] as const,
 }
 
 export function useWeatherViewModel(
@@ -57,6 +64,18 @@ export function useWeatherViewModel(
     enabled,
   })
 
+  const insightsEnabled =
+    enabled &&
+    weatherQuery.isSuccess &&
+    !(weatherQuery.data?.ai_summary ?? '').trim()
+
+  const insightsQuery = useQuery({
+    queryKey: weatherQueryKeys.insights(lat ?? 0, lon ?? 0, lang, units),
+    queryFn: () =>
+      fetchInsights(lat!, lon!, { days: 7, units, lang }),
+    enabled: insightsEnabled,
+  })
+
   const isLoading =
     weatherQuery.isLoading || hourlyQuery.isLoading || dailyQuery.isLoading
   const isError =
@@ -67,6 +86,7 @@ export function useWeatherViewModel(
       weatherQuery.refetch(),
       hourlyQuery.refetch(),
       dailyQuery.refetch(),
+      insightsQuery.refetch(),
     ])
   }
 
@@ -75,7 +95,18 @@ export function useWeatherViewModel(
     dailyQuery.data?.daily ?? weatherQuery.data?.daily ?? []
   const hourly: HourlyForecast[] =
     hourlyQuery.data?.hourly ?? weatherQuery.data?.hourly ?? []
-  const aiSummary = weatherQuery.data?.ai_summary ?? ''
+  const aiSummary =
+    (weatherQuery.data?.ai_summary ?? '').trim() ||
+    (insightsQuery.data?.ai_summary ?? '').trim()
+  const aiUnavailableReason =
+    aiSummary
+      ? ''
+      : insightsQuery.data?.ai_unavailable_reason ??
+        weatherQuery.data?.ai_unavailable_reason ??
+        ''
+  const aiSummaryLoading =
+    weatherQuery.isLoading ||
+    (insightsEnabled && insightsQuery.isLoading)
   const location = weatherQuery.data?.location ?? {
     city: '',
     region: '',
@@ -89,6 +120,8 @@ export function useWeatherViewModel(
     daily,
     hourly,
     aiSummary,
+    aiUnavailableReason,
+    aiSummaryLoading,
     location,
     isLoading,
     isError,

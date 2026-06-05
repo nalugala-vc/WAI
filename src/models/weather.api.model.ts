@@ -64,4 +64,7 @@ export interface ApiWeatherPayload {
   client_geo?: Record<string, unknown>
   ai_summary?: string
   summary?: string
+  ai_insights?: string
+  insights?: string | Record<string, unknown>
+  ai?: string | Record<string, unknown>
 }

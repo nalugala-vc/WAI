@@ -151,19 +151,19 @@ export function TemperatureChart({
           scales: {
             x: {
               grid: { display: false },
-              ticks: { color: '#94a3b8', maxTicksLimit: 8 },
+              ticks: { color: 'rgba(255,255,255,0.5)', maxTicksLimit: 8 },
             },
             y: {
               position: 'left' as const,
-              grid: { color: '#f1f5f9' },
-              ticks: { color: '#94a3b8' },
+              grid: { color: 'rgba(255,255,255,0.15)' },
+              ticks: { color: 'rgba(255,255,255,0.5)' },
             },
             y1: {
               position: 'right' as const,
               min: 0,
               max: 100,
               grid: { drawOnChartArea: false },
-              ticks: { color: '#94a3b8' },
+              ticks: { color: 'rgba(255,255,255,0.5)' },
             },
           },
         }
@@ -192,11 +192,11 @@ export function TemperatureChart({
           scales: {
             x: {
               grid: { display: false },
-              ticks: { color: '#94a3b8' },
+              ticks: { color: 'rgba(255,255,255,0.5)' },
             },
             y: {
-              grid: { color: '#f1f5f9' },
-              ticks: { color: '#94a3b8' },
+              grid: { color: 'rgba(255,255,255,0.15)' },
+              ticks: { color: 'rgba(255,255,255,0.5)' },
             },
           },
         }
@@ -205,8 +205,8 @@ export function TemperatureChart({
   const title = mode === 'hourly' ? 'Hourly temperature' : 'Weekly temperature'
 
   return (
-    <section className="rounded-3xl bg-white p-6 shadow-sm">
-      <h2 className="mb-4 text-lg font-semibold text-slate-900">{title}</h2>
+    <section className="rounded-3xl border border-white/20 bg-white/10 p-6 backdrop-blur-md">
+      <h2 className="mb-4 text-lg font-semibold text-white">{title}</h2>
 
       {hasData ? (
         <>
@@ -214,7 +214,7 @@ export function TemperatureChart({
             {legendItems.map((item) => (
               <div
                 key={item.id}
-                className="flex items-center gap-2 text-xs text-slate-500"
+                className="flex items-center gap-2 text-xs text-white/60"
               >
                 {item.dashed ? (
                   <span
@@ -236,7 +236,7 @@ export function TemperatureChart({
           </div>
         </>
       ) : (
-        <p className="py-16 text-center text-sm text-slate-500">
+        <p className="py-16 text-center text-sm text-white/60">
           No chart data available.
         </p>
       )}

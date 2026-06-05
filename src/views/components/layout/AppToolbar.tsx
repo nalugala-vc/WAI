@@ -38,7 +38,7 @@ export function AppToolbar() {
         <button
           type="button"
           onClick={() => setOpen((value) => !value)}
-          className="flex items-center gap-2 rounded-full bg-white py-1.5 pl-4 pr-3 text-xs font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200/80 hover:bg-slate-50"
+          className="flex items-center gap-2 rounded-full border border-white/20 bg-white/15 py-1.5 pl-4 pr-3 text-xs font-semibold text-white backdrop-blur-sm hover:bg-white/25"
           aria-expanded={open}
           aria-haspopup="listbox"
         >
@@ -52,7 +52,7 @@ export function AppToolbar() {
         {open ? (
           <ul
             role="listbox"
-            className="absolute right-0 z-20 mt-2 min-w-[10rem] overflow-hidden rounded-2xl bg-white py-1 shadow-lg ring-1 ring-slate-200/80"
+            className="absolute right-0 z-20 mt-2 min-w-[10rem] overflow-hidden rounded-2xl border border-white/20 bg-white/15 py-1 shadow-lg backdrop-blur-sm"
           >
             {VIEWS.map((view) => (
               <li key={view.path}>
@@ -66,8 +66,8 @@ export function AppToolbar() {
                   }}
                   className={`w-full px-4 py-2.5 text-left text-sm transition-colors ${
                     location.pathname === view.path
-                      ? 'bg-slate-100 font-semibold text-slate-900'
-                      : 'text-slate-600 hover:bg-slate-50'
+                      ? 'bg-white/20 font-semibold text-white'
+                      : 'text-white/70 hover:bg-white/10'
                   }`}
                 >
                   {view.label}
@@ -78,14 +78,14 @@ export function AppToolbar() {
         ) : null}
       </div>
 
-      <div className="flex rounded-full bg-white p-1 shadow-sm ring-1 ring-slate-200/80">
+      <div className="flex rounded-full border border-white/20 bg-white/15 p-1 backdrop-blur-sm">
         <button
           type="button"
           onClick={() => setUnits('metric')}
           className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${
             units === 'metric'
-              ? 'bg-slate-900 text-white'
-              : 'text-slate-500 hover:text-slate-700'
+              ? 'bg-white/20 text-white'
+              : 'text-white/50 hover:text-white/80'
           }`}
         >
           °C
@@ -95,8 +95,8 @@ export function AppToolbar() {
           onClick={() => setUnits('imperial')}
           className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${
             units === 'imperial'
-              ? 'bg-slate-900 text-white'
-              : 'text-slate-500 hover:text-slate-700'
+              ? 'bg-white/20 text-white'
+              : 'text-white/50 hover:text-white/80'
           }`}
         >
           °F
