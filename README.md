@@ -1,73 +1,470 @@
 # Shamba Intel
 
-Shamba Intel is a farmer-focused weather and canopy analysis web app built on the Weather AI API. It provides localized weather dashboards and farm canopy insights for agricultural decision-making.
+**Weather-AI Integration Assessment — farmer-focused weather & canopy intelligence dashboard**
 
-## Stack
+Shamba Intel is a React application built for the [Weather-AI](https://weather-ai.co) technical challenge. It consumes Weather-AI's REST APIs and presents localized weather intelligence alongside a tree-canopy analysis workflow aimed at smallholder farmers.
 
-- **React 18** + **TypeScript**
-- **Vite** — bundler and dev server
-- **Tailwind CSS v3** — utility-first styling
-- **React Router v6** — client-side routing
-- **Axios** — HTTP client for API calls
-- **Zustand** — lightweight client UI state (ViewModel layer)
-- **TanStack Query (React Query)** — server state, caching, loading/error handling
-- **Chart.js** + **react-chartjs-2** — weather temperature charts
+| | |
+|---|---|
+| **Live demo** | _Replace with your deployment URL_, e.g. `https://shamba-intel.onrender.com` |
+| **Device mockups** | `{LIVE_URL}/demo` — interactive iPhone, Android, iPad & laptop frames |
+| **API docs** | [weather-ai.co/docs](https://weather-ai.co/docs) |
 
-## Architecture (MVVM)
+---
 
-The codebase enforces strict layer separation:
+## Table of contents
 
-| Layer | Location | Responsibility |
-|-------|----------|----------------|
-| **Model** | `src/models/` | TypeScript interfaces for API payloads. Data shapes only — no UI, no state. |
-| **Service** | `src/services/` | Axios calls and raw request/response handling. Typed promises only — no hooks, no Zustand. |
-| **ViewModel** | `src/viewmodels/` | Zustand stores and React Query hooks. Business logic, derived state, side effects. No JSX. |
-| **View** | `src/views/` | React pages and components. Consumes ViewModels only — never imports from `services/` directly. |
+1. [Overview](#overview)
+2. [Screenshots & device mockups](#screenshots--device-mockups)
+3. [Features](#features)
+4. [Architecture](#architecture)
+5. [Weather-AI APIs implemented](#weather-ai-apis-implemented)
+6. [Location search — solving the lat/lon-only constraint](#location-search--solving-the-latlon-only-constraint)
+7. [Dynamic backgrounds & Lottie animations](#dynamic-backgrounds--lottie-animations)
+8. [AI quota handling](#ai-quota-handling)
+9. [Setup](#setup)
+10. [Deployment](#deployment)
+11. [Project structure](#project-structure)
 
-**Data flow:** View → ViewModel → Service → API
+---
 
-Constants live in `src/constants/`. Shared formatting helpers live in `src/utils/`.
+## Overview
+
+The Weather-AI platform exposes rich weather and forestry endpoints, but most coordinate-based routes require **`lat` and `lon`** — not a city name. The assignment challenge was to translate API data into a clean, functional product.
+
+Shamba Intel addresses this by:
+
+- Bootstrapping location via **`/v1/weather-geo`** (IP-based detection)
+- Letting users **search any place by name** via a complementary geocoding layer (OpenStreetMap Nominatim), then feeding resulting coordinates into Weather-AI
+- Rendering **condition-aware full-screen backgrounds** and **Lottie icons** that stay in sync with live API data
+- Extending into **tree canopy analysis** using the Trees & Forestry API
+
+The app uses a strict **MVVM** separation so API, state, and UI concerns remain testable and swappable.
+
+---
+
+## Screenshots & device mockups
+
+### Main application
+
+| Dashboard (weather) | Canopy analysis |
+|---------------------|-----------------|
+| ![Dashboard screenshot](docs/screenshots/dashboard.png) | ![Canopy screenshot](docs/screenshots/canopy.png) |
+
+_Add screenshots to `docs/screenshots/` before submission — capture from your live deployment or `npm run dev`._
+
+### Interactive device previews (`/demo`)
+
+The **`/demo`** route wraps the **live dashboard** inside realistic device frames using [`react-device-mockup`](https://www.npmjs.com/package/react-device-mockup) (phones/tablet) and a custom laptop frame with scale-to-fit rendering.
+
+| iPhone | Android | iPad (landscape) | Laptop |
+|--------|---------|------------------|--------|
+| ![iPhone mockup](docs/screenshots/mockup-iphone.png) | ![Android mockup](docs/screenshots/mockup-android.png) | ![iPad mockup](docs/screenshots/mockup-ipad.png) | ![Laptop mockup](docs/screenshots/mockup-laptop.png) |
+
+**Try it live:** `{YOUR_LIVE_URL}/demo`
+
+To regenerate screenshots locally:
+
+```bash
+npm run dev
+# Open http://localhost:5173/demo and capture each device tab
+# Save as docs/screenshots/mockup-{iphone,android,ipad,laptop}.png
+# Open http://localhost:5173 and /farm for dashboard.png and canopy.png
+```
+
+---
+
+## Features
+
+### Weather dashboard (`/`)
+
+- IP-based geolocation on first load (`/v1/weather-geo`)
+- Sidebar with search, live temperature, condition Lottie, rain line, AI summary slot
+- 7-day forecast strip with day-click modal (Lottie + narrative copy)
+- Today's highlights (UV, wind, humidity, sunrise/sunset, feels-like with unit conversion)
+- Hourly / weekly temperature chart (Chart.js)
+- °C / °F toggle
+- Dynamic condition backgrounds with day/night and timezone-aware sunrise/sunset
+
+### Canopy analysis (`/farm`)
+
+- Image upload (drag-and-drop) with field metadata
+- Tree count, canopy cover, health breakdown, observations & recommendations
+- Analysis history sidebar and monthly quota badge
+- Scan animation during upload
+
+### Portfolio demo (`/demo`)
+
+- Switchable device frames: iPhone, Android, iPad, Laptop
+- Renders the real app (not a static mock) inside each frame
+
+---
+
+## Architecture
+
+```
+View (React pages/components)
+        ↓
+ViewModel (Zustand + TanStack Query)
+        ↓
+Service (Axios)
+        ↓
+Weather-AI API  |  Nominatim (geocoding only)
+```
+
+| Layer | Path | Responsibility |
+|-------|------|----------------|
+| **Model** | `src/models/` | TypeScript interfaces for API payloads |
+| **Service** | `src/services/` | HTTP calls, response normalisation |
+| **ViewModel** | `src/viewmodels/` | Caching, derived state, side effects — no JSX |
+| **View** | `src/views/` | UI only — consumes ViewModels, never calls services directly |
+
+```mermaid
+flowchart LR
+  subgraph views [Views]
+    Dashboard["DashboardPage"]
+    Farm["FarmPage"]
+    Demo["DashboardMockupPage"]
+  end
+
+  subgraph vms [ViewModels]
+    GeoVM["useGeoViewModel"]
+    WeatherVM["useWeatherViewModel"]
+    SearchVM["useLocationSearch"]
+    TreesVM["useTreesViewModel"]
+    Store["useAppStore"]
+  end
+
+  subgraph services [Services]
+    GeoSvc["geo.service"]
+    WeatherSvc["weather.service"]
+    TreesSvc["trees.service"]
+    GeocodeSvc["geocoding.service"]
+  end
+
+  subgraph apis [External APIs]
+    WAI["api.weather-ai.co"]
+    NOM["Nominatim OSM"]
+  end
+
+  Dashboard --> GeoVM
+  Dashboard --> WeatherVM
+  Dashboard --> SearchVM
+  Farm --> TreesVM
+  GeoVM --> GeoSvc
+  WeatherVM --> WeatherSvc
+  SearchVM --> GeocodeSvc
+  TreesVM --> TreesSvc
+  GeoSvc --> WAI
+  WeatherSvc --> WAI
+  TreesSvc --> WAI
+  GeocodeSvc --> NOM
+  SearchVM --> Store
+  GeoVM --> Store
+```
+
+**Stack:** React 18 · TypeScript · Vite · Tailwind CSS · React Router v6 · Axios · Zustand · TanStack Query · Chart.js · lottie-react · react-device-mockup
+
+---
+
+## Weather-AI APIs implemented
+
+All requests use `Authorization: Bearer {VITE_WAI_API_KEY}`. Tree and weather fetch calls pass **`?ai=false`** to avoid consuming the monthly AI quota on the free plan while still receiving full forecast data.
+
+### Weather & geo
+
+| Endpoint | Method | Used in app | Purpose |
+|----------|--------|-------------|---------|
+| `/v1/weather-geo` | GET | `geo.service.ts` | IP-based location + bundled forecast on first load (`ip=auto`) |
+| `/v1/weather` | GET | `weather.service.ts` | Primary dashboard payload: current, daily, location, optional AI summary |
+| `/v1/hourly` | GET | `weather.service.ts` | 24-hour temperature & rain chart |
+| `/v1/daily` | GET | `weather.service.ts` | 7-day highs/lows for forecast strip & weekly chart |
+| `/v1/current` | GET | `weather.service.ts` | Implemented in service layer (available for future use) |
+| `/v1/forecast` | GET | — | Defined in constants; bundled data used via `/v1/weather` instead |
+| `/v1/insights` | GET | `weather.service.ts` | Implemented; query disabled on free tier (`enabled: false` in ViewModel) |
+
+**Typical dashboard call pattern:**
+
+```
+1. GET /v1/weather-geo?ip=auto&days=7&lang=en&ai=false     → seed lat/lon + city
+2. GET /v1/weather?lat=&lon=&days=7&units=&lang=&ai=false  → sidebar + summary
+3. GET /v1/hourly?lat=&lon=&days=1&units=metric             → hourly chart
+4. GET /v1/daily?lat=&lon=&days=7&units=metric&ai=false     → forecast strip
+```
+
+### Trees & forestry
+
+| Endpoint | Method | Used in app | Purpose |
+|----------|--------|-------------|---------|
+| `/v1/trees/analyze` | POST | `trees.service.ts` | Multipart image upload + canopy analysis |
+| `/v1/trees/history` | GET | `trees.service.ts` | Paginated past analyses |
+| `/v1/trees/quota` | GET | `trees.service.ts` | Monthly analysis runs remaining |
+
+---
+
+## Location search — solving the lat/lon-only constraint
+
+### The problem
+
+Weather-AI's coordinate endpoints (`/v1/weather`, `/v1/hourly`, `/v1/daily`, etc.) accept **`lat`** and **`lon`** — not a city string. The geo endpoint (`/v1/weather-geo`) resolves the user's IP to coordinates, but there is no built-in "search for Nairobi" endpoint in the challenge scope.
+
+Farmers think in **place names** (county, town, plot), not decimal degrees.
+
+### The approach
+
+We treat location as a **two-stage pipeline**:
+
+```
+User input  →  Resolve to coordinates  →  Weather-AI lat/lon APIs
+```
+
+#### Stage 1 — Automatic (IP geolocation)
+
+On mount, `useGeoViewModel` calls:
+
+```
+GET /v1/weather-geo?ip=auto&days=7&lang=en&ai=false
+```
+
+The response includes `ip_geo` (city, region, lat, lon). These coordinates are written to `useAppStore` with `locationSource: 'geo'`. The sidebar shows **"Current location: City, Region"**.
+
+#### Stage 2 — Manual search (complementary geocoding)
+
+When the user types in the sidebar search bar, `useLocationSearch`:
+
+1. **Tries raw coordinate parsing first** — regex `lat, lon` (e.g. `-1.2921, 36.8219`) so power users can paste coordinates directly into Weather-AI without a middle step.
+2. **Falls back to Nominatim** (OpenStreetMap) — `geocodePlace(query)` returns lat/lon + structured address (city, region, country, ISO country code).
+3. **Writes to Zustand** via `setLocation(..., 'manual')`, which invalidates weather queries for the new coordinates.
+
+```typescript
+// useLocationSearch.ts — simplified flow
+const coords = parseCoordinates(trimmed)
+if (coords) {
+  setLocation(coords.lat, coords.lon, trimmed, '', '', '', 'manual')
+  return true
+}
+const result = await geocodePlace(trimmed)  // Nominatim
+setLocation(result.lat, result.lon, result.city, result.region, ...)
+```
+
+#### Why Nominatim (not Weather-AI)?
+
+- Weather-AI docs centre on coordinate and IP lookups; place-name search is not part of the weather API surface we integrated.
+- Nominatim is free, requires no key, and returns the exact `lat`/`lon` pair Weather-AI expects.
+- **CORS:** browser calls to Nominatim are proxied in dev via Vite (`/nominatim` → `nominatim.openstreetmap.org`). Production deployments should set `VITE_NOMINATIM_BASE_URL` to a server-side proxy if needed.
+
+#### Display logic
+
+| `locationSource` | Tag shown |
+|------------------|-----------|
+| `geo` | `Current location: City, Region` |
+| `manual` | `City, CC` (e.g. `Nakuru, KE`) via `formatSearchedPlaceLabel` |
+
+Manual searches do **not** overwrite geo until the user searches; switching back would require a page refresh (geo query is cached with `staleTime: Infinity`).
+
+---
+
+## Dynamic backgrounds & Lottie animations
+
+### Design goal
+
+The dashboard should **feel like the weather outside** — not a generic white card UI. Backgrounds and icons must update when the user changes location or when conditions shift (e.g. clear → rain, day → night).
+
+### Single source of truth — `conditionAssets.ts`
+
+Both backgrounds and Lotties derive from one normaliser:
+
+```typescript
+resolveConditionCategory(condition: string): ConditionCategory
+```
+
+This maps API condition strings (`"Partly cloudy"`, `"Light rain"`, `"Thunderstorm"`, etc.) to a fixed set of categories: `thunder`, `heavyRain`, `rain`, `fog`, `wind`, `partly`, `overcast`, `clear`, `fallback`.
+
+**Order matters** — e.g. `"partly cloudy"` is checked before generic `"cloudy"` so it maps to `partly`, not `overcast`.
+
+### Background selection (`getConditionBackground`)
+
+Inputs: `condition`, `is_day` (from API), `timezone` (from `location.timezone`).
+
+**Night branch** (`is_day === false`): uses dedicated night assets (`Clear (night).png`, `Partly cloudy NIGHT.png`, `Overcast Cloudy Night.png`, etc.).
+
+**Day branch**: uses day assets; additionally applies **timezone-aware golden hour**:
+
+| Local hour (in location TZ) | Effect |
+|----------------------------|--------|
+| 05:00–08:00 | Sunrise background for clear/partly |
+| 17:00–20:00 | Sunset background for clear/partly |
+| 08:00–17:00 | Standard day asset per category |
+
+`getHourInTimezone()` uses `Intl.DateTimeFormat` with the API timezone so a user viewing London weather at 6 PM GMT gets sunset imagery even if their laptop is in Nairobi.
+
+### Day/night detection (`weather.mapper.ts`)
+
+Reliable priority chain for `is_day`:
+
+1. API `current.is_day` when present
+2. Compare `current.time` against `daily[0].sunrise` / `sunset` (all in location local time)
+3. Icon filename heuristic (`-day` / `-night`)
+4. Local machine hour fallback
+
+This fixed stale backgrounds when switching between cities in different timezones.
+
+### Lottie pairing (`getConditionLottie`)
+
+Uses the **same** `resolveConditionCategory` as backgrounds. Each category maps to a JSON animation in `src/assets/lotties/`. Rendered in the sidebar via `lottie-react` (`ConditionLottie` component).
+
+| Category | Day Lottie | Night Lottie |
+|----------|------------|--------------|
+| clear | Sunny Clear (day) | Clear (night) |
+| partly | Partly cloudy day | Partly cloudy NIGHT |
+| rain | Light rain | Light rain |
+| thunder | Thunderstorm | Thunderstorm |
+
+Assets are `structuredClone`'d before passing to Lottie to avoid mutation across renders.
+
+### Dashboard integration (`DashboardPage.tsx`)
+
+```typescript
+const liveBg = getConditionBackground(condition, isDay, timezone)
+const overlayOpacity = getOverlayOpacity(condition, isDay)
+
+// Persist previous bg while new city loads — avoids flash to empty
+const [displayedBg, setDisplayedBg] = useState('')
+useEffect(() => {
+  if (liveBg) setDisplayedBg(liveBg)
+}, [liveBg])
+```
+
+A semi-transparent black overlay (`rgba(0,0,0, opacity)`) keeps glass UI text readable; opacity varies by condition (heavier for storms/rain).
+
+### Forecast day modal
+
+Clicking a day in `ForecastStrip` opens `DayForecastModal` with the matching Lottie and generated narrative (`forecastNarrative.ts`) in English or Swahili.
+
+---
+
+## AI quota handling
+
+On the **free plan**, the monthly AI quota (200 requests) can be exhausted quickly. The app:
+
+- Passes **`ai=false`** on all weather, geo, and tree API calls
+- Disables the separate `/v1/insights` query (`enabled: false` in `useWeatherViewModel`)
+- Surfaces a friendly fallback in `AISummaryBanner` when no AI summary is returned
+
+Tree endpoints (`/v1/trees/history`, `/v1/trees/quota`) also require `ai=false` — without it, the API returns a quota-exceeded error even for non-AI forestry data.
+
+---
 
 ## Setup
 
-1. **Install dependencies**
+### Prerequisites
 
-   ```bash
-   npm install
-   ```
+- Node.js 18+
+- A Weather-AI API key from [weather-ai.co](https://weather-ai.co)
 
-2. **Configure environment**
+### Install & run
 
-   ```bash
-   cp .env.example .env
-   ```
+```bash
+git clone <your-repo-url>
+cd shamba-intel
+npm install
+cp .env.example .env
+```
 
-   Edit `.env` and set your Weather AI API key:
+Edit `.env`:
 
-   ```
-   VITE_WAI_API_KEY=wai_your_actual_key
-   ```
+```env
+VITE_WAI_API_KEY=wai_your_actual_key
+```
 
-3. **Start the dev server**
+Optional (production geocoding proxy):
 
-   ```bash
-   npm run dev
-   ```
+```env
+VITE_NOMINATIM_BASE_URL=https://your-proxy.example/nominatim
+```
 
-   Open the URL shown in the terminal (default: `http://localhost:5173`).
+```bash
+npm run dev        # http://localhost:5173
+npm run build      # production build
+npm run preview    # preview production build locally
+```
 
-## Scripts
-
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start Vite dev server |
-| `npm run build` | Type-check and production build |
-| `npm run preview` | Preview production build locally |
-| `npm run lint` | Run ESLint |
-
-## Routes
+### Routes
 
 | Path | Page |
 |------|------|
-| `/` | Dashboard — weather overview |
-| `/farm` | Farm — canopy analysis |
+| `/` | Weather dashboard |
+| `/farm` | Tree canopy analysis |
+| `/demo` | Device mockup portfolio preview |
+
+---
+
+## Deployment
+
+The app is a static Vite SPA. Deploy to **Netlify**, **Vercel**, **Render**, **Railway**, or **Firebase Hosting**.
+
+### Build settings
+
+| Setting | Value |
+|---------|-------|
+| Build command | `npm run build` |
+| Output directory | `dist` |
+| Environment variable | `VITE_WAI_API_KEY` |
+
+### SPA routing
+
+Configure your host to rewrite all paths to `index.html` (e.g. Netlify `_redirects`: `/* /index.html 200`).
+
+### Geocoding in production
+
+Place search uses Nominatim. For production traffic, deploy a lightweight proxy or set `VITE_NOMINATIM_BASE_URL` to respect [Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/) (max 1 req/s, valid User-Agent — already set in `geocoding.service.ts`).
+
+---
+
+## Project structure
+
+```
+shamba-intel/
+├── docs/screenshots/          # README mockup images (add before submit)
+├── src/
+│   ├── constants/             # API endpoints, geocoding config
+│   ├── models/                # TypeScript API & domain types
+│   ├── services/              # Axios service layer
+│   │   ├── api.client.ts      # Bearer auth interceptor
+│   │   ├── geo.service.ts
+│   │   ├── weather.service.ts
+│   │   ├── trees.service.ts
+│   │   └── geocoding.service.ts
+│   ├── viewmodels/            # Zustand + React Query hooks
+│   ├── views/
+│   │   ├── pages/             # DashboardPage, FarmPage, DashboardMockupPage
+│   │   └── components/
+│   │       ├── weather/       # Sidebar, forecast, charts, Lottie
+│   │       ├── farm/          # Upload, analysis, history
+│   │       └── demo/          # Device frames & scaled preview
+│   ├── utils/
+│   │   ├── conditionAssets.ts # Background + Lottie resolver
+│   │   ├── weather.mapper.ts  # API → domain mapping, is_day logic
+│   │   └── coordinates.ts     # lat,lon parser for search bar
+│   └── assets/
+│       ├── backgrounds/       # Condition PNG backgrounds
+│       └── lotties/           # Condition Lottie JSON
+├── .env.example
+└── vite.config.ts             # Nominatim dev proxy
+```
+
+---
+
+## Submission checklist (Weather-AI challenge)
+
+- [ ] Public GitHub repository link
+- [ ] This `README.md` with setup instructions
+- [ ] Screenshots in `docs/screenshots/` (dashboard, canopy, four device mockups)
+- [ ] Live deployment URL (dashboard + `/demo` + `/farm`)
+- [ ] `VITE_WAI_API_KEY` set in hosting environment (never committed)
+
+---
+
+## License
+
+MIT — built as a technical assessment submission for Weather-AI.

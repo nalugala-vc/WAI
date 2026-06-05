@@ -14,7 +14,17 @@ import { TodayHighlights } from '../components/weather/TodayHighlights'
 import { TemperatureChart } from '../components/weather/TemperatureChart'
 import { isToday } from '../../utils/formatters'
 
-export default function DashboardPage() {
+export interface DashboardPageProps {
+  /** Render inside a device mockup frame instead of the full viewport. */
+  embedded?: boolean
+  /** Force layout when embedded (ignores breakpoints). */
+  previewLayout?: 'mobile' | 'desktop' | 'ipad' | 'laptop'
+}
+
+export default function DashboardPage({
+  embedded = false,
+  previewLayout = 'mobile',
+}: DashboardPageProps) {
   const lat = useAppStore((state) => state.lat)
   const lon = useAppStore((state) => state.lon)
   const lang = useAppStore((state) => state.lang)
@@ -82,10 +92,63 @@ export default function DashboardPage() {
     if (liveBg) setDisplayedBg(liveBg)
   }, [liveBg])
 
+  const isLaptopPreview = embedded && previewLayout === 'laptop'
+  const isIpadPreview = embedded && previewLayout === 'ipad'
+  const isCompactDesktop = embedded && previewLayout === 'desktop'
+  const isMobilePreview = embedded && previewLayout === 'mobile'
+
+  const rootClass = embedded
+    ? 'relative h-full min-h-0 overflow-hidden'
+    : 'relative min-h-screen'
+
+  const bgClass = embedded ? 'absolute inset-0 z-0' : 'fixed inset-0 z-0'
+  const overlayClass = embedded ? 'absolute inset-0 z-10' : 'fixed inset-0 z-10'
+  const contentClass = embedded
+    ? 'relative z-20 h-full overflow-hidden'
+    : 'relative z-20 min-h-screen lg:h-screen lg:overflow-hidden'
+
+  const innerPadClass = isLaptopPreview
+    ? 'flex h-full w-full max-w-[100rem] flex-col py-6 pl-5 pr-8'
+    : isIpadPreview
+      ? 'flex h-full w-full flex-col py-4 pl-4 pr-5'
+      : isCompactDesktop || isMobilePreview
+        ? 'flex h-full w-full flex-col py-3 pl-2 pr-2'
+        : 'flex h-full w-full max-w-[100rem] flex-col py-6 pl-3 pr-5 lg:py-6 lg:pl-5 lg:pr-10'
+
+  const layoutClass = isLaptopPreview
+    ? 'flex min-h-0 flex-1 flex-row items-stretch gap-6'
+    : isIpadPreview
+      ? 'flex min-h-0 flex-1 flex-row items-stretch gap-4'
+      : isCompactDesktop
+        ? 'flex min-h-0 flex-1 flex-row items-stretch gap-3'
+        : isMobilePreview
+          ? 'flex min-h-0 flex-1 flex-col gap-4'
+          : 'flex min-h-0 flex-1 flex-col gap-5 lg:flex-row lg:items-stretch lg:gap-6'
+
+  const sidebarWrapClass = isLaptopPreview
+    ? 'h-full w-[280px] shrink-0'
+    : isIpadPreview
+      ? 'h-full w-[220px] shrink-0'
+      : isCompactDesktop
+        ? 'h-full w-[38%] shrink-0'
+        : isMobilePreview
+          ? 'w-full shrink-0'
+          : 'w-full shrink-0 lg:sticky lg:top-0 lg:h-full lg:w-[280px]'
+
+  const mainClass = isLaptopPreview
+    ? 'min-h-0 min-w-0 flex-1 space-y-6 overflow-y-auto overscroll-contain pb-6 pr-1'
+    : isIpadPreview
+      ? 'min-h-0 min-w-0 flex-1 space-y-4 overflow-y-auto overscroll-contain pb-4 pr-0.5'
+      : isCompactDesktop
+        ? 'min-h-0 min-w-0 flex-1 space-y-3 overflow-y-auto overscroll-contain pr-0.5'
+        : isMobilePreview
+          ? 'min-h-0 min-w-0 flex-1 space-y-4 overflow-y-auto overscroll-contain'
+          : 'min-h-0 min-w-0 flex-1 space-y-6 lg:overflow-y-auto lg:overscroll-contain lg:pb-6 lg:pr-1'
+
   return (
-    <div className="relative min-h-screen">
+    <div className={rootClass}>
       <div
-        className="fixed inset-0 z-0"
+        className={bgClass}
         style={{
           backgroundImage: displayedBg ? `url("${displayedBg}")` : 'none',
           backgroundSize: 'cover',
@@ -95,15 +158,15 @@ export default function DashboardPage() {
       />
 
       <div
-        className="fixed inset-0 z-10"
+        className={overlayClass}
         style={{
           backgroundColor: `rgba(0,0,0,${overlayOpacity})`,
           transition: 'opacity 0.6s ease-in-out',
         }}
       />
 
-      <div className="relative z-20 min-h-screen lg:h-screen lg:overflow-hidden">
-        <div className="flex h-full w-full max-w-[100rem] flex-col py-6 pl-3 pr-5 lg:py-6 lg:pl-5 lg:pr-10">
+      <div className={contentClass}>
+        <div className={innerPadClass}>
           {showSkeleton ? <DashboardSkeleton /> : null}
 
           {showError && !showSkeleton ? (
@@ -122,8 +185,8 @@ export default function DashboardPage() {
           ) : null}
 
           {!showSkeleton && !showError && weather.current ? (
-            <div className="flex min-h-0 flex-1 flex-col gap-5 lg:flex-row lg:items-stretch lg:gap-6">
-              <div className="w-full shrink-0 lg:sticky lg:top-0 lg:h-full lg:w-[280px]">
+            <div className={layoutClass}>
+              <div className={sidebarWrapClass}>
                 <DashboardSidebar
                   current={weather.current}
                   units={units}
@@ -136,9 +199,13 @@ export default function DashboardPage() {
                 />
               </div>
 
-              <main className="min-h-0 min-w-0 flex-1 space-y-6 lg:overflow-y-auto lg:overscroll-contain lg:pb-6 lg:pr-1">
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <h2 className="text-lg font-semibold text-white drop-shadow-sm">
+              <main className={mainClass}>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h2
+                    className={`font-semibold text-white drop-shadow-sm ${
+                      isMobilePreview || isCompactDesktop ? 'text-sm' : 'text-lg'
+                    }`}
+                  >
                     {dayHeading}
                   </h2>
                   <AppToolbar />
