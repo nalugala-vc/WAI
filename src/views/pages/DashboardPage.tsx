@@ -87,7 +87,7 @@ export default function DashboardPage() {
       <div
         className="fixed inset-0 z-0"
         style={{
-          backgroundImage: displayedBg ? `url(${displayedBg})` : 'none',
+          backgroundImage: displayedBg ? `url("${displayedBg}")` : 'none',
           backgroundSize: 'cover',
           backgroundPosition: 'center bottom',
           backgroundRepeat: 'no-repeat',
