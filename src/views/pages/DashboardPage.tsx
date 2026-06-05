@@ -5,7 +5,9 @@ import { useWeatherViewModel } from '../../viewmodels/useWeatherViewModel'
 import {
   getConditionBackground,
   getOverlayOpacity,
+  preloadAllConditionBackgrounds,
 } from '../../utils/conditionAssets'
+import { preloadImage } from '../../utils/preloadImage'
 import { ErrorState } from '../components/common/ErrorState'
 import { AppToolbar } from '../components/layout/AppToolbar'
 import { DashboardSidebar } from '../components/weather/DashboardSidebar'
@@ -91,12 +93,23 @@ export default function DashboardPage({
     : null
   const overlayOpacity = condition ? getOverlayOpacity(condition, isDay) : 0.5
 
-  // Update the displayed background whenever live data produces a new URL.
-  // When liveBg is null (city loading), we skip the update so the old
-  // city's background remains visible.
   const [displayedBg, setDisplayedBg] = useState('')
+
   useEffect(() => {
-    if (liveBg) setDisplayedBg(liveBg)
+    preloadAllConditionBackgrounds()
+  }, [])
+
+  useEffect(() => {
+    if (!liveBg) return
+
+    let cancelled = false
+    void preloadImage(liveBg).then(() => {
+      if (!cancelled) setDisplayedBg(liveBg)
+    })
+
+    return () => {
+      cancelled = true
+    }
   }, [liveBg])
 
   const isLaptopPreview = embedded && previewLayout === 'laptop'

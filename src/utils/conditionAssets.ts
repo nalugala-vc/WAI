@@ -12,6 +12,7 @@ import bgSunset from '../assets/backgrounds/Sunset.png'
 import bgThunderstorm from '../assets/backgrounds/Thunderstorm.png'
 import bgWindy from '../assets/backgrounds/Windy.png'
 import bgFallback from '../assets/backgrounds/fallback.png'
+import { preloadImages } from './preloadImage'
 
 import lottieClearNight from '../assets/lotties/Clear (night).json'
 import lottieFogMist from '../assets/lotties/Fog Mist.json'
@@ -24,6 +25,28 @@ import lottieSunny from '../assets/lotties/Sunny Clear (day).json'
 import lottieThunderstorm from '../assets/lotties/Thunderstorm.json'
 import lottieWindy from '../assets/lotties/windy.json'
 import lottieFallback from '../assets/lotties/fall back.json'
+
+/** Every dashboard background URL — warmed on first visit so swaps are instant. */
+export const ALL_CONDITION_BACKGROUNDS = [
+  bgClearNight,
+  bgFogMist,
+  bgHeavyRain,
+  bgLightRain,
+  bgOvercastDay,
+  bgOvercastNight,
+  bgPartlyCloudyDay,
+  bgPartlyCloudyNight,
+  bgSunny,
+  bgSunrise,
+  bgSunset,
+  bgThunderstorm,
+  bgWindy,
+  bgFallback,
+] as const
+
+export function preloadAllConditionBackgrounds(): void {
+  preloadImages([...ALL_CONDITION_BACKGROUNDS])
+}
 
 export type ConditionCategory =
   | 'thunder'
