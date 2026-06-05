@@ -1,8 +1,8 @@
 # Shamba Intel
 
-**Weather-AI Integration Assessment — farmer-focused weather & canopy intelligence dashboard**
+**Farmer-focused weather & canopy intelligence dashboard**
 
-Shamba Intel is a React application built for the [Weather-AI](https://weather-ai.co) technical challenge. It consumes Weather-AI's REST APIs and presents localized weather intelligence alongside a tree-canopy analysis workflow aimed at smallholder farmers.
+Shamba Intel is a React application powered by [Weather-AI](https://weather-ai.co). It delivers localized weather intelligence and a tree-canopy analysis workflow aimed at smallholder farmers.
 
 | | |
 |---|---|
@@ -31,7 +31,7 @@ Shamba Intel is a React application built for the [Weather-AI](https://weather-a
 
 ## Overview
 
-The Weather-AI platform exposes rich weather and forestry endpoints, but most coordinate-based routes require **`lat` and `lon`** — not a city name. The assignment challenge was to translate API data into a clean, functional product.
+The Weather-AI platform exposes rich weather and forestry endpoints, but most routes require **`lat` and `lon`** — not a city name. Shamba Intel wraps that API surface in a clean, farmer-friendly product.
 
 Shamba Intel addresses this by:
 
@@ -89,75 +89,7 @@ I structured the app as **MVVM** — each layer has one job and only talks to th
 | **Service** | `src/services/` | HTTP calls and response normalisation |
 | **Model** | `src/models/` | TypeScript interfaces for API payloads |
 
-### Layer stack
-
-```mermaid
-flowchart TB
-  V["View — React pages & components"]
-  VM["ViewModel — Zustand + TanStack Query"]
-  S["Service — Axios"]
-  WAI["Weather-AI api.weather-ai.co"]
-  NOM["Nominatim — place search only"]
-
-  V -->|"reads / triggers"| VM
-  VM -->|"fetch / mutate"| S
-  S -->|"weather, geo, trees"| WAI
-  S -->|"city name → lat/lon"| NOM
-```
-
-### How data flows at runtime
-
-```mermaid
-flowchart TB
-  User(["User"])
-
-  subgraph pages [Pages]
-    Dash["DashboardPage /"]
-    Farm["FarmPage /farm"]
-  end
-
-  subgraph hooks [ViewModels]
-    Store["useAppStore — lat, lon, city, units"]
-    Geo["useGeoViewModel"]
-    Weather["useWeatherViewModel"]
-    Search["useLocationSearch"]
-    Trees["useTreesViewModel"]
-  end
-
-  subgraph http [Services]
-    GeoSvc["geo.service"]
-    WeatherSvc["weather.service"]
-    GeocodeSvc["geocoding.service"]
-    TreesSvc["trees.service"]
-    Proxy["api.client → /api/wai proxy in production"]
-  end
-
-  WAI["Weather-AI"]
-  NOM["Nominatim"]
-
-  User --> Dash
-  User --> Farm
-
-  Dash --> Geo
-  Dash --> Weather
-  Dash --> Search
-  Farm --> Trees
-
-  Geo --> GeoSvc
-  Weather --> WeatherSvc
-  Search --> GeocodeSvc
-  Trees --> TreesSvc
-
-  Geo --> Store
-  Search --> Store
-  Weather --> Store
-
-  GeoSvc --> Proxy
-  WeatherSvc --> Proxy
-  TreesSvc --> Proxy
-  Proxy --> WAI
-  GeocodeSvc --> NOM
-```
+![Architecture flowchart](docs/screenshots/flowchart.png)
 
 **First load:** `useGeoViewModel` calls `/v1/weather-geo` → saves coordinates to `useAppStore` → `useWeatherViewModel` fetches weather for those coordinates.
 
@@ -206,7 +138,7 @@ All requests use `Authorization: Bearer {VITE_WAI_API_KEY}`. Tree and weather fe
 
 ### The problem
 
-Weather-AI's coordinate endpoints (`/v1/weather`, `/v1/hourly`, `/v1/daily`, etc.) accept **`lat`** and **`lon`** — not a city string. The geo endpoint (`/v1/weather-geo`) resolves the user's IP to coordinates, but there is no built-in "search for Nairobi" endpoint in the challenge scope.
+Weather-AI's coordinate endpoints (`/v1/weather`, `/v1/hourly`, `/v1/daily`, etc.) accept **`lat`** and **`lon`** — not a city string. The geo endpoint (`/v1/weather-geo`) resolves the user's IP to coordinates, but the API does not include a place-name search endpoint.
 
 Farmers think in **place names** (county, town, plot), not decimal degrees.
 
@@ -499,4 +431,4 @@ WAI/
 
 ## License
 
-MIT — built as a technical assessment submission for Weather-AI.
+MIT
