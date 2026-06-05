@@ -19,6 +19,9 @@ export default function DashboardPage() {
   const lon = useAppStore((state) => state.lon)
   const lang = useAppStore((state) => state.lang)
   const units = useAppStore((state) => state.units)
+  const locationSource = useAppStore((state) => state.locationSource)
+  const storeCity = useAppStore((state) => state.city)
+  const storeRegion = useAppStore((state) => state.region)
   const geo = useGeoViewModel()
   const weather = useWeatherViewModel(lat, lon, lang)
 
@@ -40,6 +43,14 @@ export default function DashboardPage() {
   }
 
   const todayDaily = weather.daily.find((day) => isToday(day.date))
+
+  const preferStore = locationSource === 'manual'
+  const displayCity = preferStore
+    ? storeCity || weather.location.city || geo.city
+    : weather.location.city || storeCity || geo.city
+  const displayRegion = preferStore
+    ? storeRegion || weather.location.region || geo.region
+    : weather.location.region || storeRegion || geo.region
 
   const dayHeading = useMemo(() => {
     if (todayDaily?.day_of_week) return todayDaily.day_of_week
@@ -120,6 +131,8 @@ export default function DashboardPage() {
                   aiSummary={weather.aiSummary}
                   aiUnavailableReason={weather.aiUnavailableReason}
                   aiSummaryLoading={weather.aiSummaryLoading}
+                  city={displayCity}
+                  region={displayRegion}
                 />
               </div>
 
@@ -131,7 +144,11 @@ export default function DashboardPage() {
                   <AppToolbar />
                 </div>
 
-                <ForecastStrip forecasts={weather.daily} units={units} />
+                <ForecastStrip
+                  forecasts={weather.daily}
+                  units={units}
+                  lang={lang}
+                />
 
                 <TodayHighlights
                   current={weather.current}

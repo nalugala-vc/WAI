@@ -3,6 +3,8 @@ import { ConditionLottie } from './ConditionLottie'
 import type { FormEvent } from 'react'
 import type { CurrentWeather } from '../../../models/weather.model'
 import { useLocationSearch } from '../../../viewmodels/useLocationSearch'
+import { useAppStore } from '../../../viewmodels/useAppStore'
+import { formatSearchedPlaceLabel } from '../../../utils/placeLabel'
 import { getConditionLottie } from '../../../utils/conditionAssets'
 import { getConditionIcon } from '../../../utils/conditionIcon'
 import { formatNowDateTime, formatTemp } from '../../../utils/formatters'
@@ -16,6 +18,9 @@ export interface DashboardSidebarProps {
   aiSummary: string
   aiUnavailableReason?: string
   aiSummaryLoading: boolean
+  /** Fallback place names from weather / geo when the store is empty */
+  city?: string
+  region?: string
 }
 
 export function DashboardSidebar({
@@ -25,9 +30,25 @@ export function DashboardSidebar({
   aiSummary,
   aiUnavailableReason,
   aiSummaryLoading,
+  city: fallbackCity = '',
+  region: fallbackRegion = '',
 }: DashboardSidebarProps) {
   const [query, setQuery] = useState('')
   const { search, isSearching, error, clearError } = useLocationSearch()
+  const locationSource = useAppStore((state) => state.locationSource)
+  const storeCity = useAppStore((state) => state.city)
+  const storeRegion = useAppStore((state) => state.region)
+  const storeCountry = useAppStore((state) => state.country)
+  const storeCountryCode = useAppStore((state) => state.countryCode)
+
+  const geoLocationLabel = [storeCity || fallbackCity, storeRegion || fallbackRegion]
+    .filter(Boolean)
+    .join(', ')
+  const searchedPlace = formatSearchedPlaceLabel(
+    storeCity,
+    storeCountryCode,
+    storeCountry,
+  )
 
   const icon = getConditionIcon(current.condition)
   const lottieData = useMemo(
@@ -81,6 +102,18 @@ export function DashboardSidebar({
         {error ? (
           <p className="-mt-2 shrink-0 text-xs text-amber-200" role="alert">
             {error}
+          </p>
+        ) : null}
+
+        {locationSource === 'geo' && geoLocationLabel ? (
+          <p className="-mt-1 shrink-0 text-xs font-medium text-white/80">
+            <span className="text-white/55">Current location:</span>{' '}
+            {geoLocationLabel}
+          </p>
+        ) : null}
+        {locationSource === 'manual' && searchedPlace ? (
+          <p className="-mt-1 shrink-0 text-xs font-semibold text-white">
+            {searchedPlace}
           </p>
         ) : null}
 

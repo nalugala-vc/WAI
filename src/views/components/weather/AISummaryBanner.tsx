@@ -28,10 +28,10 @@ export function AISummaryBanner({
   if (isLoading) {
     return (
       <section className={`animate-pulse ${shell}`}>
-        <div className="mb-2 h-4 w-28 rounded-lg bg-white/20" />
+        <div className="mb-2 h-4 w-28 rounded-lg bg-white/10" />
         <div className="space-y-2">
-          <div className="h-3 w-full rounded bg-white/20" />
-          <div className="h-3 w-5/6 rounded bg-white/20" />
+          <div className="h-3 w-full rounded bg-white/10" />
+          <div className="h-3 w-5/6 rounded bg-white/10" />
         </div>
       </section>
     )

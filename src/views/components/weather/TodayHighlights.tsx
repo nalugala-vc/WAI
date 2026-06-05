@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import type { CurrentWeather, DailyForecast } from '../../../models/weather.model'
 import {
+  formatTemp,
   formatTimeShort,
   formatWind,
   getUVLabel,
@@ -177,7 +178,7 @@ export function TodayHighlights({
           <div className="flex items-end justify-between gap-4">
             <div>
               <p className="text-3xl font-semibold text-white">
-                {Math.round(current.feels_like)}°
+                {formatTemp(current.feels_like, units)}
               </p>
               <p className="mt-1 text-sm text-white/60">
                 {current.is_day ? 'Daytime' : 'Nighttime'}
