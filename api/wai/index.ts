@@ -50,7 +50,7 @@ export default async function handler(
     return
   }
 
-  const apiKey = process.env.WAI_API_KEY ?? process.env.VITE_WAI_API_KEY
+  const apiKey = process.env.VITE_WAI_API_KEY
   if (!apiKey) {
     res.status(500).json({
       error: 'Weather-AI API key is not configured on the server.',

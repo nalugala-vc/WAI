@@ -80,66 +80,88 @@ The app uses a strict **MVVM** separation so API, state, and UI concerns remain 
 
 ## Architecture
 
-```
-View (React pages/components)
-        ↓
-ViewModel (Zustand + TanStack Query)
-        ↓
-Service (Axios)
-        ↓
-Weather-AI API  |  Nominatim (geocoding only)
-```
+I structured the app as **MVVM** — each layer has one job and only talks to the layer directly below it.
 
 | Layer | Path | Responsibility |
 |-------|------|----------------|
+| **View** | `src/views/` | UI only — pages and components, no direct API calls |
+| **ViewModel** | `src/viewmodels/` | React Query caching, Zustand store, derived state — no JSX |
+| **Service** | `src/services/` | HTTP calls and response normalisation |
 | **Model** | `src/models/` | TypeScript interfaces for API payloads |
-| **Service** | `src/services/` | HTTP calls, response normalisation |
-| **ViewModel** | `src/viewmodels/` | Caching, derived state, side effects — no JSX |
-| **View** | `src/views/` | UI only — consumes ViewModels, never calls services directly |
+
+### Layer stack
 
 ```mermaid
-flowchart LR
-  subgraph views [Views]
-    Dashboard["DashboardPage"]
-    Farm["FarmPage"]
-    Demo["DashboardMockupPage"]
+flowchart TB
+  V["View — React pages & components"]
+  VM["ViewModel — Zustand + TanStack Query"]
+  S["Service — Axios"]
+  WAI["Weather-AI api.weather-ai.co"]
+  NOM["Nominatim — place search only"]
+
+  V -->|"reads / triggers"| VM
+  VM -->|"fetch / mutate"| S
+  S -->|"weather, geo, trees"| WAI
+  S -->|"city name → lat/lon"| NOM
+```
+
+### How data flows at runtime
+
+```mermaid
+flowchart TB
+  User(["User"])
+
+  subgraph pages [Pages]
+    Dash["DashboardPage /"]
+    Farm["FarmPage /farm"]
   end
 
-  subgraph vms [ViewModels]
-    GeoVM["useGeoViewModel"]
-    WeatherVM["useWeatherViewModel"]
-    SearchVM["useLocationSearch"]
-    TreesVM["useTreesViewModel"]
-    Store["useAppStore"]
+  subgraph hooks [ViewModels]
+    Store["useAppStore — lat, lon, city, units"]
+    Geo["useGeoViewModel"]
+    Weather["useWeatherViewModel"]
+    Search["useLocationSearch"]
+    Trees["useTreesViewModel"]
   end
 
-  subgraph services [Services]
+  subgraph http [Services]
     GeoSvc["geo.service"]
     WeatherSvc["weather.service"]
-    TreesSvc["trees.service"]
     GeocodeSvc["geocoding.service"]
+    TreesSvc["trees.service"]
+    Proxy["api.client → /api/wai proxy in production"]
   end
 
-  subgraph apis [External APIs]
-    WAI["api.weather-ai.co"]
-    NOM["Nominatim OSM"]
-  end
+  WAI["Weather-AI"]
+  NOM["Nominatim"]
 
-  Dashboard --> GeoVM
-  Dashboard --> WeatherVM
-  Dashboard --> SearchVM
-  Farm --> TreesVM
-  GeoVM --> GeoSvc
-  WeatherVM --> WeatherSvc
-  SearchVM --> GeocodeSvc
-  TreesVM --> TreesSvc
-  GeoSvc --> WAI
-  WeatherSvc --> WAI
-  TreesSvc --> WAI
+  User --> Dash
+  User --> Farm
+
+  Dash --> Geo
+  Dash --> Weather
+  Dash --> Search
+  Farm --> Trees
+
+  Geo --> GeoSvc
+  Weather --> WeatherSvc
+  Search --> GeocodeSvc
+  Trees --> TreesSvc
+
+  Geo --> Store
+  Search --> Store
+  Weather --> Store
+
+  GeoSvc --> Proxy
+  WeatherSvc --> Proxy
+  TreesSvc --> Proxy
+  Proxy --> WAI
   GeocodeSvc --> NOM
-  SearchVM --> Store
-  GeoVM --> Store
 ```
+
+**First load:** `useGeoViewModel` calls `/v1/weather-geo` → saves coordinates to `useAppStore` → `useWeatherViewModel` fetches weather for those coordinates.
+
+**Manual search:** `useLocationSearch` geocodes the city name via Nominatim → updates `useAppStore` → weather queries refetch for the new lat/lon.
 
 **Stack:** React 18 · TypeScript · Vite · Tailwind CSS · React Router v6 · Axios · Zustand · TanStack Query · Chart.js · lottie-react · react-device-mockup
 
@@ -190,7 +212,7 @@ Farmers think in **place names** (county, town, plot), not decimal degrees.
 
 ### The approach
 
-We treat location as a **two-stage pipeline**:
+I treat location as a **two-stage pipeline**:
 
 ```
 User input  →  Resolve to coordinates  →  Weather-AI lat/lon APIs
@@ -227,7 +249,7 @@ setLocation(result.lat, result.lon, result.city, result.region, ...)
 
 #### Why Nominatim (not Weather-AI)?
 
-- Weather-AI docs centre on coordinate and IP lookups; place-name search is not part of the weather API surface we integrated.
+- Weather-AI docs centre on coordinate and IP lookups; place-name search is not part of the weather API surface I integrated.
 - Nominatim is free, requires no key, and returns the exact `lat`/`lon` pair Weather-AI expects.
 - **CORS:** see [Nominatim / place search configuration](#nominatim--place-search-configuration) below.
 
@@ -401,7 +423,7 @@ npm run preview    # preview production build locally
 
 ## Deployment
 
-The app is a static Vite SPA. Deploy to **Netlify**, **Vercel**, **Render**, **Railway**, or **Firebase Hosting**.
+The app is deployed on **Vercel** as a static Vite SPA with a serverless API proxy. It can also be hosted on Netlify, Render, Railway, or Firebase Hosting (you would need an equivalent proxy for Weather-AI CORS).
 
 ### Build settings (Vercel)
 
@@ -411,12 +433,15 @@ The app is a static Vite SPA. Deploy to **Netlify**, **Vercel**, **Render**, **R
 | Output directory | `dist` |
 | Framework | Vite |
 
-**Required environment variables on Vercel:**
+### Environment variables
 
-| Variable | Purpose |
-|----------|---------|
-| `WAI_API_KEY` | Server-side proxy (`api/wai/[...path].ts`) — **required for production** |
-| `VITE_WAI_API_KEY` | Optional in production if `WAI_API_KEY` is set; still used for local `npm run dev` |
+Only one variable is required — the same key used in local `.env`:
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `VITE_WAI_API_KEY` | Yes | Local dev: browser sends `Authorization` directly to Weather-AI. Vercel: read by `api/wai/index.ts` serverless proxy at runtime |
+
+On Vercel, add `VITE_WAI_API_KEY` under **Project → Settings → Environment Variables** (Production, and Preview if you use preview deploys). No other env vars are needed unless place search breaks in production (see [Nominatim configuration](#nominatim--place-search-configuration)).
 
 ### CORS / API proxy (production)
 
@@ -426,7 +451,7 @@ Weather-AI's API does not allow direct browser calls from `https://wai-jade.verc
 Browser  →  /api/wai/v1/weather-geo  →  api.weather-ai.co/v1/weather-geo
 ```
 
-Implementation: `api/wai/[...path].ts` attaches `Authorization: Bearer {WAI_API_KEY}` server-side. Local dev still calls `api.weather-ai.co` directly.
+Implementation: `api/wai/index.ts` reads `VITE_WAI_API_KEY` and attaches `Authorization: Bearer …` server-side. Local dev still calls `api.weather-ai.co` directly with the same key from `.env`.
 
 ### SPA routing
 
@@ -469,16 +494,6 @@ WAI/
 ├── .env.example
 └── vite.config.ts             # Nominatim dev proxy
 ```
-
----
-
-## Submission checklist (Weather-AI challenge)
-
-- [ ] Public GitHub repository link
-- [ ] This `README.md` with setup instructions
-- [x] Screenshots in `docs/screenshots/`
-- [x] Live deployment: [wai-jade.vercel.app](https://wai-jade.vercel.app/) · [demo](https://wai-jade.vercel.app/demo) · [canopy](https://wai-jade.vercel.app/farm)
-- [x] `WAI_API_KEY` set on Vercel (server proxy for CORS)
 
 ---
 

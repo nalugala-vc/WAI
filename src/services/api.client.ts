@@ -25,7 +25,7 @@ apiClient.interceptors.response.use((response) => {
   ) {
     return Promise.reject(
       new Error(
-        'The API proxy is not running — the server returned the app page instead of weather data. Redeploy with the latest code and set WAI_API_KEY on Vercel.',
+        'The API proxy is not running — the server returned the app page instead of weather data. Redeploy with the latest code and set VITE_WAI_API_KEY on Vercel.',
       ),
     )
   }
