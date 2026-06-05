@@ -8,4 +8,4 @@ export const NOMINATIM_BASE_URL =
   (import.meta.env.DEV ? '/nominatim' : 'https://nominatim.openstreetmap.org')
 
 export const NOMINATIM_USER_AGENT =
-  'ShambaIntel/1.0 (https://github.com/shamba-intel; weather dashboard)'
+  'ShambaIntel/1.0 (https://github.com/nalugala-vc/WAI; weather dashboard)'

@@ -6,8 +6,9 @@ Shamba Intel is a React application built for the [Weather-AI](https://weather-a
 
 | | |
 |---|---|
-| **Live demo** | _Replace with your deployment URL_, e.g. `https://shamba-intel.onrender.com` |
-| **Device mockups** | `{LIVE_URL}/demo` — interactive iPhone, Android, iPad & laptop frames |
+| **Repository** | [github.com/nalugala-vc/WAI](https://github.com/nalugala-vc/WAI) |
+| **Live demo** | [wai-jade.vercel.app](https://wai-jade.vercel.app/) |
+| **Device mockups** | [wai-jade.vercel.app/demo](https://wai-jade.vercel.app/demo) |
 | **API docs** | [weather-ai.co/docs](https://weather-ai.co/docs) |
 
 ---
@@ -51,7 +52,7 @@ The app uses a strict **MVVM** separation so API, state, and UI concerns remain 
 |---------------------|-----------------|
 | ![Dashboard screenshot](docs/screenshots/dashboard.png) | ![Canopy screenshot](docs/screenshots/canopy.png) |
 
-_Add screenshots to `docs/screenshots/` before submission — capture from your live deployment or `npm run dev`._
+_Add screenshots to `docs/screenshots/` before submission — capture from [wai-jade.vercel.app](https://wai-jade.vercel.app/) or `npm run dev`._
 
 ### Interactive device previews (`/demo`)
 
@@ -61,15 +62,15 @@ The **`/demo`** route wraps the **live dashboard** inside realistic device frame
 |--------|---------|------------------|--------|
 | ![iPhone mockup](docs/screenshots/mockup-iphone.png) | ![Android mockup](docs/screenshots/mockup-android.png) | ![iPad mockup](docs/screenshots/mockup-ipad.png) | ![Laptop mockup](docs/screenshots/mockup-laptop.png) |
 
-**Try it live:** `{YOUR_LIVE_URL}/demo`
+**Try it live:** [wai-jade.vercel.app/demo](https://wai-jade.vercel.app/demo)
 
 To regenerate screenshots locally:
 
 ```bash
 npm run dev
-# Open http://localhost:5173/demo and capture each device tab
+# Open https://wai-jade.vercel.app/demo and capture each device tab
 # Save as docs/screenshots/mockup-{iphone,android,ipad,laptop}.png
-# Open http://localhost:5173 and /farm for dashboard.png and canopy.png
+# Open https://wai-jade.vercel.app/ and /farm for dashboard.png and canopy.png
 ```
 
 ---
@@ -251,7 +252,7 @@ setLocation(result.lat, result.lon, result.city, result.region, ...)
 
 - Weather-AI docs centre on coordinate and IP lookups; place-name search is not part of the weather API surface we integrated.
 - Nominatim is free, requires no key, and returns the exact `lat`/`lon` pair Weather-AI expects.
-- **CORS:** browser calls to Nominatim are proxied in dev via Vite (`/nominatim` → `nominatim.openstreetmap.org`). Production deployments should set `VITE_NOMINATIM_BASE_URL` to a server-side proxy if needed.
+- **CORS:** see [Nominatim / place search configuration](#nominatim--place-search-configuration) below.
 
 #### Display logic
 
@@ -365,23 +366,45 @@ Tree endpoints (`/v1/trees/history`, `/v1/trees/quota`) also require `ai=false` 
 ### Install & run
 
 ```bash
-git clone <your-repo-url>
-cd shamba-intel
+git clone https://github.com/nalugala-vc/WAI
+cd WAI
 npm install
 cp .env.example .env
 ```
 
-Edit `.env`:
+Edit `.env` — **required:**
 
 ```env
 VITE_WAI_API_KEY=wai_your_actual_key
 ```
 
-Optional (production geocoding proxy):
+### Nominatim / place search configuration
+
+`VITE_NOMINATIM_BASE_URL` is **optional**. You only need it if the sidebar place search fails in production (browser CORS blocking direct calls to OpenStreetMap).
+
+**Where it is used in code:**
+
+| File | Role |
+|------|------|
+| `src/constants/geocoding.constants.ts` | Reads `import.meta.env.VITE_NOMINATIM_BASE_URL` into `NOMINATIM_BASE_URL` |
+| `src/services/geocoding.service.ts` | Axios client `baseURL` for `geocodePlace()` — powers the dashboard search bar |
+| `src/viewmodels/useLocationSearch.ts` | Calls `geocodePlace()` when the user searches a city name |
+
+**Default behaviour (no env var set):**
+
+| Environment | Base URL used | How |
+|-------------|---------------|-----|
+| `npm run dev` | `/nominatim` | Vite dev proxy in `vite.config.ts` forwards to `nominatim.openstreetmap.org` |
+| Production build | `https://nominatim.openstreetmap.org` | Direct browser request |
+
+**When to set `VITE_NOMINATIM_BASE_URL`:** only on a **hosted production** build if place search breaks. Point it at your own reverse proxy, e.g.:
 
 ```env
-VITE_NOMINATIM_BASE_URL=https://your-proxy.example/nominatim
+# Optional — only if production place search hits CORS errors
+VITE_NOMINATIM_BASE_URL=https://your-server.example/nominatim
 ```
+
+Local development does **not** need this variable; the Vite proxy handles it automatically.
 
 ```bash
 npm run dev        # http://localhost:5173
@@ -403,28 +426,45 @@ npm run preview    # preview production build locally
 
 The app is a static Vite SPA. Deploy to **Netlify**, **Vercel**, **Render**, **Railway**, or **Firebase Hosting**.
 
-### Build settings
+### Build settings (Vercel)
 
 | Setting | Value |
 |---------|-------|
 | Build command | `npm run build` |
 | Output directory | `dist` |
-| Environment variable | `VITE_WAI_API_KEY` |
+| Framework | Vite |
+
+**Required environment variables on Vercel:**
+
+| Variable | Purpose |
+|----------|---------|
+| `WAI_API_KEY` | Server-side proxy (`api/wai/[...path].ts`) — **required for production** |
+| `VITE_WAI_API_KEY` | Optional in production if `WAI_API_KEY` is set; still used for local `npm run dev` |
+
+### CORS / API proxy (production)
+
+Weather-AI's API does not allow direct browser calls from `https://wai-jade.vercel.app` (no `Access-Control-Allow-Origin` header). In production the app routes all Weather-AI requests through a **same-origin Vercel serverless proxy**:
+
+```
+Browser  →  /api/wai/v1/weather-geo  →  api.weather-ai.co/v1/weather-geo
+```
+
+Implementation: `api/wai/[...path].ts` attaches `Authorization: Bearer {WAI_API_KEY}` server-side. Local dev still calls `api.weather-ai.co` directly.
 
 ### SPA routing
 
-Configure your host to rewrite all paths to `index.html` (e.g. Netlify `_redirects`: `/* /index.html 200`).
+`vercel.json` rewrites non-API routes to `index.html`. Netlify equivalent: `public/_redirects`.
 
 ### Geocoding in production
 
-Place search uses Nominatim. For production traffic, deploy a lightweight proxy or set `VITE_NOMINATIM_BASE_URL` to respect [Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/) (max 1 req/s, valid User-Agent — already set in `geocoding.service.ts`).
+Place search uses Nominatim (see [Nominatim / place search configuration](#nominatim--place-search-configuration)). Respect the [Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/) (max 1 req/s; valid User-Agent is set in `geocoding.service.ts`). Set `VITE_NOMINATIM_BASE_URL` only if you deploy a reverse proxy for CORS.
 
 ---
 
 ## Project structure
 
 ```
-shamba-intel/
+WAI/
 ├── docs/screenshots/          # README mockup images (add before submit)
 ├── src/
 │   ├── constants/             # API endpoints, geocoding config
@@ -460,8 +500,8 @@ shamba-intel/
 - [ ] Public GitHub repository link
 - [ ] This `README.md` with setup instructions
 - [ ] Screenshots in `docs/screenshots/` (dashboard, canopy, four device mockups)
-- [ ] Live deployment URL (dashboard + `/demo` + `/farm`)
-- [ ] `VITE_WAI_API_KEY` set in hosting environment (never committed)
+- [x] Live deployment: [wai-jade.vercel.app](https://wai-jade.vercel.app/) · [demo](https://wai-jade.vercel.app/demo) · [canopy](https://wai-jade.vercel.app/farm)
+- [x] `WAI_API_KEY` set on Vercel (server proxy for CORS)
 
 ---
 

@@ -6,6 +6,7 @@ import {
   getConditionBackground,
   getOverlayOpacity,
 } from '../../utils/conditionAssets'
+import { ErrorState } from '../components/common/ErrorState'
 import { AppToolbar } from '../components/layout/AppToolbar'
 import { DashboardSidebar } from '../components/weather/DashboardSidebar'
 import { DashboardSkeleton } from '../components/weather/DashboardSkeleton'
@@ -170,18 +171,11 @@ export default function DashboardPage({
           {showSkeleton ? <DashboardSkeleton /> : null}
 
           {showError && !showSkeleton ? (
-            <section className="rounded-3xl bg-white p-8 text-center shadow-sm">
-              <p className="text-sm font-medium text-red-800">
-                Unable to load weather data. Check your API key and connection.
-              </p>
-              <button
-                type="button"
-                onClick={handleRetry}
-                className="mt-4 rounded-full bg-slate-900 px-5 py-2 text-sm font-medium text-white hover:bg-slate-800"
-              >
-                Try again
-              </button>
-            </section>
+            <ErrorState
+              title="Couldn't load weather"
+              message="Check your connection and API key, then try again. If you just deployed, confirm WAI_API_KEY is set on the server."
+              onRetry={handleRetry}
+            />
           ) : null}
 
           {!showSkeleton && !showError && weather.current ? (

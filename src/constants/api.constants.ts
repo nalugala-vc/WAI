@@ -1,4 +1,9 @@
-export const API_BASE_URL = 'https://api.weather-ai.co'
+/** In production, calls go through /api/wai to avoid browser CORS blocks. */
+export const API_BASE_URL = import.meta.env.PROD
+  ? '/api/wai'
+  : 'https://api.weather-ai.co'
+
+export const USE_API_PROXY = import.meta.env.PROD
 
 export const ENDPOINTS = {
   WEATHER: '/v1/weather',

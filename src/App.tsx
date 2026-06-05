@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { AppRouter } from './router/AppRouter'
+import { FullPageError } from './views/components/common/FullPageError'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -37,21 +38,11 @@ class AppErrorBoundary extends Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-gray-50 p-6 text-center">
-          <p className="text-sm font-medium text-red-800">
-            Something went wrong loading the app.
-          </p>
-          {import.meta.env.DEV && this.state.message ? (
-            <p className="max-w-md text-xs text-red-600">{this.state.message}</p>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="rounded-lg bg-green-700 px-4 py-2 text-sm font-medium text-white hover:bg-green-800"
-          >
-            Reload page
-          </button>
-        </div>
+        <FullPageError
+          title="Something went wrong"
+          message="The app hit an unexpected error. Reload the page to continue."
+          devDetail={this.state.message}
+        />
       )
     }
     return this.props.children
