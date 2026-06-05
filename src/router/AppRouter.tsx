@@ -1,6 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
-import { DashboardPage } from '../views/pages/DashboardPage'
-import { FarmPage } from '../views/pages/FarmPage'
+import DashboardPage from '../views/pages/DashboardPage'
+import FarmPage from '../views/pages/FarmPage'
 
 export function AppRouter() {
   return (

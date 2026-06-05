@@ -1,51 +1,97 @@
 import { useQuery } from '@tanstack/react-query'
+import type {
+  CurrentWeather,
+  DailyForecast,
+  HourlyForecast,
+} from '../models/weather.model'
 import {
-  fetchCurrentWeather,
-  fetchDailyForecast,
-  fetchHourlyForecast,
+  fetchDaily,
+  fetchHourly,
   fetchWeather,
 } from '../services/weather.service'
+import { useAppStore } from './useAppStore'
 
 export const weatherQueryKeys = {
   all: ['weather'] as const,
-  weather: (location: string) =>
-    [...weatherQueryKeys.all, 'summary', location] as const,
-  current: (location: string) =>
-    [...weatherQueryKeys.all, 'current', location] as const,
-  hourly: (location: string) =>
-    [...weatherQueryKeys.all, 'hourly', location] as const,
-  daily: (location: string) =>
-    [...weatherQueryKeys.all, 'daily', location] as const,
+  summary: (
+    lat: number,
+    lon: number,
+    lang: 'en' | 'sw',
+    units: 'metric' | 'imperial',
+  ) => [...weatherQueryKeys.all, 'summary', lat, lon, lang, units] as const,
+  hourly: (
+    lat: number,
+    lon: number,
+    units: 'metric' | 'imperial',
+  ) => [...weatherQueryKeys.all, 'hourly', lat, lon, units] as const,
+  daily: (
+    lat: number,
+    lon: number,
+    units: 'metric' | 'imperial',
+  ) => [...weatherQueryKeys.all, 'daily', lat, lon, units] as const,
 }
 
-export function useWeatherQuery(location: string | null) {
-  return useQuery({
-    queryKey: weatherQueryKeys.weather(location ?? ''),
-    queryFn: () => fetchWeather(location!),
-    enabled: Boolean(location),
-  })
-}
+export function useWeatherViewModel(
+  lat: number | null,
+  lon: number | null,
+  lang: 'en' | 'sw',
+) {
+  const units = useAppStore((state) => state.units)
+  const enabled = lat !== null && lon !== null
 
-export function useCurrentWeatherQuery(location: string | null) {
-  return useQuery({
-    queryKey: weatherQueryKeys.current(location ?? ''),
-    queryFn: () => fetchCurrentWeather(location!),
-    enabled: Boolean(location),
+  const weatherQuery = useQuery({
+    queryKey: weatherQueryKeys.summary(lat ?? 0, lon ?? 0, lang, units),
+    queryFn: () => fetchWeather(lat!, lon!, { days: 7, lang, units, ai: true }),
+    enabled,
   })
-}
 
-export function useHourlyForecastQuery(location: string | null) {
-  return useQuery({
-    queryKey: weatherQueryKeys.hourly(location ?? ''),
-    queryFn: () => fetchHourlyForecast(location!),
-    enabled: Boolean(location),
+  const hourlyQuery = useQuery({
+    queryKey: weatherQueryKeys.hourly(lat ?? 0, lon ?? 0, units),
+    queryFn: () => fetchHourly(lat!, lon!, { days: 1, units }),
+    enabled,
   })
-}
 
-export function useDailyForecastQuery(location: string | null) {
-  return useQuery({
-    queryKey: weatherQueryKeys.daily(location ?? ''),
-    queryFn: () => fetchDailyForecast(location!),
-    enabled: Boolean(location),
+  const dailyQuery = useQuery({
+    queryKey: weatherQueryKeys.daily(lat ?? 0, lon ?? 0, units),
+    queryFn: () => fetchDaily(lat!, lon!, { days: 7, units, ai: true }),
+    enabled,
   })
+
+  const isLoading =
+    weatherQuery.isLoading || hourlyQuery.isLoading || dailyQuery.isLoading
+  const isError =
+    weatherQuery.isError || hourlyQuery.isError || dailyQuery.isError
+
+  const refetch = () => {
+    void Promise.all([
+      weatherQuery.refetch(),
+      hourlyQuery.refetch(),
+      dailyQuery.refetch(),
+    ])
+  }
+
+  const current: CurrentWeather | undefined = weatherQuery.data?.current
+  const daily: DailyForecast[] =
+    dailyQuery.data?.daily ?? weatherQuery.data?.daily ?? []
+  const hourly: HourlyForecast[] =
+    hourlyQuery.data?.hourly ?? weatherQuery.data?.hourly ?? []
+  const aiSummary = weatherQuery.data?.ai_summary ?? ''
+  const location = weatherQuery.data?.location ?? {
+    city: '',
+    region: '',
+    country: '',
+    lat: lat ?? 0,
+    lon: lon ?? 0,
+  }
+
+  return {
+    current,
+    daily,
+    hourly,
+    aiSummary,
+    location,
+    isLoading,
+    isError,
+    refetch,
+  }
 }

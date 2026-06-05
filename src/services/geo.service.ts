@@ -1,11 +1,28 @@
-import { GEO_ENDPOINTS } from '../constants/api.constants'
-import type { GeoDetectionResponse } from '../models/geo.model'
+import { ENDPOINTS } from '../constants/api.constants'
+import type { ApiWeatherPayload } from '../models/weather.api.model'
+import type { GeoWeatherResponse } from '../models/geo.model'
+import { mapGeoWeatherResponse } from '../utils/weather.mapper'
 import { apiClient } from './api.client'
 
-export async function fetchWeatherGeo(): Promise<GeoDetectionResponse> {
-  const { data } = await apiClient.get<GeoDetectionResponse>(
-    GEO_ENDPOINTS.WEATHER_GEO,
-    { params: { ip: 'auto' } },
+export interface GeoWeatherFetchOptions {
+  days?: number
+  lang?: 'en' | 'sw'
+  ai?: boolean
+}
+
+export async function fetchGeoWeather(
+  options?: GeoWeatherFetchOptions,
+): Promise<GeoWeatherResponse> {
+  const { data } = await apiClient.get<ApiWeatherPayload>(
+    ENDPOINTS.WEATHER_GEO,
+    {
+      params: {
+        ip: 'auto',
+        days: options?.days ?? 7,
+        lang: options?.lang ?? 'en',
+        ai: options?.ai ?? true,
+      },
+    },
   )
-  return data
+  return mapGeoWeatherResponse(data)
 }
